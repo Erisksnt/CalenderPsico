@@ -1,0 +1,209 @@
+// Schema Prisma - CalenderPsico
+// Banco de dados: PostgreSQL
+// Este schema define toda a estrutura de dados do sistema de agendamento
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  PSYCHOLOGIST
+  PATIENT
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+// ==================== MODELS ====================
+
+/// Model de Usuários
+/// Gerenciado via Supabase Auth, este model complementa os dados
+model User {
+  id                String        @id @default(cuid())
+  auth_id           String        @unique // ID do Supabase Auth
+  email             String        @unique
+  role              UserRole
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  // Relações
+  psychologist      Psychologist?
+  
+  @@map("users")
+  @@index([auth_id])
+  @@index([email])
+}
+
+/// Model de Psicólogos
+/// Um psicólogo é um usuário com role PSYCHOLOGIST
+model Psychologist {
+  id                    String        @id @default(cuid())
+  user_id               String        @unique
+  name                  String
+  bio                   String?
+  specialties           String[]      @default([]) // ["depressão", "ansiedade"]
+  registration_number   String        @unique // Número do CRP
+  phone                 String?
+  created_at            DateTime      @default(now())
+  updated_at            DateTime      @updatedAt
+
+  // Relações
+  user                  User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  services              Service[]
+  availabilities        Availability[]
+  appointments          Appointment[]
+
+  @@map("psychologists")
+  @@index([user_id])
+  @@index([registration_number])
+}
+
+/// Model de Pacientes
+/// Um paciente pode agendar múltiplas consultas
+model Patient {
+  id                String      @id @default(cuid())
+  name              String
+  email             String      @unique
+  phone             String
+  notes             String?     // Notas gerais do paciente
+  created_at        DateTime    @default(now())
+  updated_at        DateTime    @updatedAt
+
+  // Relações
+  appointments      Appointment[]
+
+  @@map("patients")
+  @@index([email])
+}
+
+/// Model de Serviços
+/// Cada psicólogo pode oferecer múltiplos serviços
+/// Ex: Sessão individual, sessão de casal, etc.
+model Service {
+  id                String        @id @default(cuid())
+  psychologist_id   String
+  name              String        // "Sessão individual", "Avaliação psicológica"
+  description       String?
+  duration          Int           // Duração em minutos (30, 45, 60)
+  price             Int           // Preço em centavos (ex: 10000 = R$ 100,00)
+  color             String        @default("#3B82F6") // Cor no calendário
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  // Relações
+  psychologist      Psychologist  @relation(fields: [psychologist_id], references: [id], onDelete: Cascade)
+  appointments      Appointment[]
+
+  @@map("services")
+  @@index([psychologist_id])
+  @@unique([psychologist_id, name])
+}
+
+/// Model de Disponibilidade
+/// Define os horários que o psicólogo está disponível
+/// Recorrente (e.g., toda segunda das 9:00 às 12:00)
+model Availability {
+  id                    String        @id @default(cuid())
+  psychologist_id       String
+  day_of_week           DayOfWeek     // Monday, Tuesday, etc
+  start_time            String        // HH:mm format (e.g., "09:00")
+  end_time              String        // HH:mm format (e.g., "12:00")
+  is_blocked            Boolean       @default(false) // Para bloquear horários específicos
+  created_at            DateTime      @default(now())
+  updated_at            DateTime      @updatedAt
+
+  // Relações
+  psychologist          Psychologist  @relation(fields: [psychologist_id], references: [id], onDelete: Cascade)
+
+  @@map("availabilities")
+  @@index([psychologist_id])
+  @@index([day_of_week])
+  @@unique([psychologist_id, day_of_week, start_time, end_time])
+}
+
+/// Model de Agendamentos
+/// Representa uma consulta marcada
+model Appointment {
+  id                    String                @id @default(cuid())
+  service_id            String
+  patient_id            String
+  psychologist_id       String
+  start_time            DateTime
+  end_time              DateTime
+  status                AppointmentStatus    @default(SCHEDULED)
+  notes                 String?               // Notas da consulta (preenchidas após)
+  confirmation_token    String?               @unique // Token para confirmação por email
+  payment_status        String?               @default("pending") // pending, completed, refunded
+  created_at            DateTime              @default(now())
+  updated_at            DateTime              @updatedAt
+
+  // Relações
+  service               Service               @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  patient               Patient               @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  psychologist          Psychologist          @relation(fields: [psychologist_id], references: [id], onDelete: Cascade)
+
+  @@map("appointments")
+  @@index([patient_id])
+  @@index([psychologist_id])
+  @@index([service_id])
+  @@index([start_time])
+  @@index([status])
+  @@unique([psychologist_id, start_time])
+}
+
+/// Model de Blocos de Tempo
+/// Para bloquear períodos específicos (férias, almoço, etc)
+model TimeBlock {
+  id                    String        @id @default(cuid())
+  psychologist_id       String
+  start_time            DateTime
+  end_time              DateTime
+  reason                String        // "Férias", "Almoço", "Manutenção", etc
+  created_at            DateTime      @default(now())
+  updated_at            DateTime      @updatedAt
+
+  @@map("time_blocks")
+  @@index([psychologist_id])
+  @@index([start_time])
+}
+
+/// Model de Auditoria
+/// Rastreia todas as mudanças importantes no sistema
+model AuditLog {
+  id                    String        @id @default(cuid())
+  entity_type           String        // "Appointment", "Availability", etc
+  entity_id             String
+  action                String        // "CREATE", "UPDATE", "DELETE"
+  user_id               String?
+  old_values            String?       // JSON string
+  new_values            String?       // JSON string
+  ip_address            String?
+  created_at            DateTime      @default(now())
+
+  @@map("audit_logs")
+  @@index([entity_type])
+  @@index([entity_id])
+  @@index([user_id])
+  @@index([created_at])
+}
