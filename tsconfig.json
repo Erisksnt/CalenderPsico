@@ -54,6 +54,20 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "app/api/appointments/**",
+    "app/api/auth/**",
+    "app/api/availability/**",
+    "app/api/psychologists/**",
+    "app/api/seed/**",
+    "app/api/services/**",
+    "app/api/test/**",
+    "app/api/users/**",
+    "app/(auth)/**",
+    "app/(patient)/**",
+    "app/(psychologist)/**",
+    "components/auth/**",
+    "components/patient/**",
+    "components/psychologist/**"
   ]
 }
