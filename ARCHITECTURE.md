@@ -14,6 +14,8 @@
 - Autenticação admin com cookie HttpOnly assinado por JWT.
 - Rotas administrativas validam sessão.
 - Validação com Zod em payloads de API.
+- Senhas com hash seguro (`scrypt` + salt, sem plaintext).
+- Recuperação de senha com token único e expiração de 1 hora.
 - Prevenção de double booking:
   - verificação de slot livre antes de criar consulta;
   - índice único em `appointments(data, hora)`.
@@ -25,9 +27,8 @@
 4. API valida dados, valida slot livre e cria consulta com `status=pending`.
 5. Admin visualiza em `/admin` e atualiza status para `confirmed` ou `cancelled`.
 
-
 ## Registro/Login/Recuperação
 - `POST /api/admin/register`: cria conta do psicólogo com validações e hash de senha.
 - `POST /api/admin/login`: autentica e emite cookie HttpOnly.
-- `POST /api/admin/forgot-password`: gera token de reset com 1h de validade e envia link (simulado via log).
+- `POST /api/admin/forgot-password`: gera token de reset com 1h de validade e gera link de redefinição.
 - `POST /api/admin/reset-password`: valida token e troca senha com novo hash.

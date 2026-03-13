@@ -10,6 +10,7 @@ Sistema simples de portfólio + agenda pública para um único psicólogo.
 1. Copie `.env.example` para `.env` e configure:
    - `DATABASE_URL`
    - `JWT_SECRET`
+   - `NEXT_PUBLIC_APP_URL`
 2. Gere client prisma:
    ```bash
    npm run prisma:generate
@@ -23,10 +24,11 @@ Sistema simples de portfólio + agenda pública para um único psicólogo.
    npm run dev
    ```
 
-## Seed inicial do admin (manual)
-Crie um usuário em `users` com senha SHA-256:
-- email do psicólogo
-- `password_hash = sha256(<senha>)`
+## Seed inicial do admin
+Você pode criar dados iniciais com:
+```bash
+curl -X POST http://localhost:3000/api/seed
+```
 
 ## Endpoints
 ### Públicos
@@ -35,22 +37,24 @@ Crie um usuário em `users` com senha SHA-256:
 - `POST /api/public/appointments`
 
 ### Admin
+- `POST /api/admin/register`
 - `POST /api/admin/login`
 - `POST /api/admin/logout`
+- `POST /api/admin/forgot-password`
+- `POST /api/admin/reset-password`
 - `GET/PUT /api/admin/profile`
 - `GET/PUT /api/admin/availability`
 - `GET /api/admin/appointments`
 - `PATCH /api/admin/appointments/:id`
 
-
 ## Autenticação do psicólogo
 - Login: `/admin/login`
 - Registro: `/admin/register`
-- Recuperação: `/admin/forgot-password` -> link para `/admin/reset-password?token=...`
+- Recuperação: `/admin/forgot-password` → link para `/admin/reset-password?token=...`
 
 Regras aplicadas:
 - Email válido
 - Senha mínima de 8 caracteres
 - Email único no banco
-- Senha armazenada com hash seguro (scrypt com salt)
+- Senha armazenada com hash seguro (`scrypt` + salt)
 - Token de reset com expiração de 1 hora

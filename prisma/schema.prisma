@@ -15,13 +15,13 @@ enum AppointmentStatus {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password_hash         String
-  reset_password_token String?   @unique
+  id                        String    @id @default(cuid())
+  email                     String    @unique
+  password_hash             String
+  reset_password_token      String?   @unique
   reset_password_expires_at DateTime?
-  created_at            DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
 
   profile Profile?
 

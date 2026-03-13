@@ -1,17 +1,19 @@
 import { z } from 'zod';
 
+const emailSchema = z.string().trim().toLowerCase().email('Email inválido');
+
 export const AdminLoginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: emailSchema,
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
 });
 
 export const AdminRegisterSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: emailSchema,
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
 });
 
 export const ForgotPasswordSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: emailSchema,
 });
 
 export const ResetPasswordSchema = z.object({
