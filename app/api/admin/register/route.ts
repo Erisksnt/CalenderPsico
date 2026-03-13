@@ -4,26 +4,58 @@ import { AdminRegisterSchema } from '@/lib/validators';
 import { hashPassword } from '@/lib/password';
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const parsed = AdminRegisterSchema.safeParse(body);
+  try {
+    const body = await request.json();
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const parsed = AdminRegisterSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { email, password } = parsed.data;
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Email já cadastrado' },
+        { status: 409 }
+      );
+    }
+
+    const password_hash = hashPassword(password);
+
+    const user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        password_hash,
+      },
+      select: {
+        id: true,
+        email: true,
+        created_at: true,
+      },
+    });
+
+    return NextResponse.json(
+      { success: true, user },
+      { status: 201 }
+    );
+
+  } catch (error) {
+    console.error('REGISTER ERROR:', error);
+
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
   }
-
-  const { email, password } = parsed.data;
-  const exists = await prisma.user.findUnique({ where: { email } });
-  if (exists) {
-    return NextResponse.json({ error: 'Email já cadastrado' }, { status: 409 });
-  }
-
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password_hash: hashPassword(password),
-    },
-    select: { id: true, email: true, created_at: true },
-  });
-
-  return NextResponse.json({ user }, { status: 201 });
 }
