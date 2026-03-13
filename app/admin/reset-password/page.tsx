@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
+
 export default function ResetPasswordPage() {
   const params = useSearchParams();
   const token = params.get('token') || '';
