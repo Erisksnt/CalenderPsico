@@ -4,13 +4,25 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-const prisma = global.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
+function getPrismaInstance() {
+  if (!global.prisma) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL is required to instantiate PrismaClient');
+    }
+    global.prisma = new PrismaClient();
+  }
+  return global.prisma;
 }
 
-export default prisma;
+const prismaProxy = new Proxy({} as PrismaClient, {
+  get(_, prop) {
+    const client = getPrismaInstance();
+    const value = (client as unknown as Record<string, unknown>)[prop as string];
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(client) : value;
+  },
+});
+
+export default prismaProxy;
 
 // legacy compatibility helpers for unused legacy routes
 export async function getOrCreatePatient() {
