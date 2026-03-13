@@ -7,6 +7,17 @@ const publicPhoneSchema = z
   .trim()
   .regex(/^\d{10,11}$/, 'Insira um número de telefone válido');
 
+export const TimeBlockSchema = z.object({
+  start_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  end_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+});
+
+export const ServiceSchema = z.object({
+  name: z.string().min(2),
+  duration: z.number().min(15).max(180),
+  price: z.number().min(0).optional(),
+});
+
 export const AdminLoginSchema = z.object({
   email: emailSchema,
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
