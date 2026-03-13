@@ -5,7 +5,7 @@ const publicEmailSchema = z.string().trim().toLowerCase().email('Insira um e-mai
 const publicPhoneSchema = z
   .string()
   .trim()
-  .refine((value) => value.replace(/\D/g, '').length >= 10, 'Insira um número de telefone válido');
+  .regex(/^\d{10,11}$/, 'Insira um número de telefone válido');
 
 export const AdminLoginSchema = z.object({
   email: emailSchema,

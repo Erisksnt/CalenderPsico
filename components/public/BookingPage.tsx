@@ -2,11 +2,16 @@
 
 import { useMemo, useState } from 'react';
 
-const SUCCESS_MESSAGE = `Sua pré-consulta foi solicitada com sucesso e está aguardando a confirmação do psicólogo.
+const SUCCESS_MESSAGE = `Sua ambientação foi solicitada com sucesso e está aguardando a confirmação do psicólogo.
 
 Essa conversa inicial servirá para que vocês possam se conhecer melhor e entender se desejam iniciar o processo terapêutico.
 
 Você receberá a confirmação da agenda por e-mail ou contato telefônico.`;
+
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+const PHONE_REGEX = /^\d{10,11}$/;
+const INITIAL_FORM_STATE = { nome: '', email: '', telefone: '', mensagem: '' };
+const INITIAL_FIELD_ERRORS = { email: '', telefone: '' };
 
 function todayISO() {
   const now = new Date();
@@ -26,8 +31,10 @@ export default function BookingPage() {
   const [slots, setSlots] = useState<string[]>([]);
   const [selected, setSelected] = useState('');
   const [message, setMessage] = useState('');
-  const [fieldErrors, setFieldErrors] = useState({ email: '', telefone: '' });
-  const [form, setForm] = useState({ nome: '', email: '', telefone: '', mensagem: '' });
+  const [fieldErrors, setFieldErrors] = useState(INITIAL_FIELD_ERRORS);
+  const [form, setForm] = useState(INITIAL_FORM_STATE);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalText, setSuccessModalText] = useState('');
 
   const minDate = useMemo(() => todayISO(), []);
 
@@ -38,13 +45,27 @@ export default function BookingPage() {
   }, [date, minDate, slots]);
 
   function validateEmail(value: string) {
-    const valid = /^\S+@\S+\.\S+$/.test(value.trim());
+    const trimmed = value.trim();
+    const valid = EMAIL_REGEX.test(trimmed);
     return valid ? '' : 'Insira um e-mail válido';
   }
 
   function validatePhone(value: string) {
-    const digits = value.replace(/\D/g, '');
-    return digits.length >= 10 ? '' : 'Insira um número de telefone válido';
+    return PHONE_REGEX.test(value) ? '' : 'Insira um número de telefone válido';
+  }
+
+  function resetFlow() {
+    setForm({ ...INITIAL_FORM_STATE });
+    setFieldErrors({ ...INITIAL_FIELD_ERRORS });
+    setDate('');
+    setSelected('');
+    setSlots([]);
+    setMessage('');
+  }
+
+  function closeSuccessModal() {
+    setIsSuccessModalOpen(false);
+    setSuccessModalText('');
   }
 
   async function loadSlots(value: string) {
@@ -52,7 +73,7 @@ export default function BookingPage() {
       setDate(value);
       setSlots([]);
       setSelected('');
-      setMessage('Selecione uma data de hoje em diante para solicitar uma pré-consulta.');
+      setMessage('Selecione uma data de hoje em diante para solicitar uma ambientação.');
       return;
     }
 
@@ -72,7 +93,7 @@ export default function BookingPage() {
 
   async function submit() {
     if (date < minDate) {
-      setMessage('Não é possível solicitar pré-consulta em datas anteriores ao dia atual.');
+      setMessage('Não é possível solicitar ambientação em datas anteriores ao dia atual.');
       return;
     }
 
@@ -81,10 +102,11 @@ export default function BookingPage() {
     setFieldErrors({ email: emailError, telefone: phoneError });
 
     if (emailError || phoneError) {
-      setMessage('Corrija os campos destacados para enviar sua solicitação de pré-consulta.');
+      setMessage('Corrija os campos destacados para enviar sua solicitação de ambientação.');
       return;
     }
 
+    setMessage('');
     const response = await fetch('/api/public/appointments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -93,8 +115,9 @@ export default function BookingPage() {
 
     const data = await response.json();
     if (response.ok) {
-      setMessage(data.message || SUCCESS_MESSAGE);
-      await loadSlots(date);
+      setSuccessModalText(data.message || SUCCESS_MESSAGE);
+      resetFlow();
+      setIsSuccessModalOpen(true);
     } else {
       setMessage(data.error || 'Erro ao enviar solicitação');
     }
@@ -102,17 +125,17 @@ export default function BookingPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold">Solicitar pré-consulta</h1>
-      <p className="text-gray-700">A pré-consulta é uma conversa inicial para você conhecer o psicólogo e entender se deseja iniciar o processo terapêutico.</p>
+      <h1 className="text-3xl font-bold">Solicitar ambientação</h1>
+      <p className="text-gray-700">A ambientação é uma conversa inicial para você conhecer o psicólogo e entender se deseja iniciar o processo terapêutico.</p>
 
       <div className="bg-white p-4 rounded border">
-        <label className="block font-semibold mb-2">Escolha um dia para pré-consulta</label>
+        <label className="block font-semibold mb-2">Escolha um dia para ambientação</label>
         <input type="date" min={minDate} className="border rounded p-2" value={date} onChange={(e) => loadSlots(e.target.value)} />
       </div>
 
       {date && (
         <div className="bg-white p-4 rounded border">
-          <p className="font-semibold mb-2">Horários disponíveis para pré-consulta</p>
+          <p className="font-semibold mb-2">Horários disponíveis para ambientação</p>
           <div className="flex flex-wrap gap-2">
             {visibleSlots.length === 0 && <span className="text-gray-500">Sem horários livres.</span>}
             {visibleSlots.map((slot) => (
@@ -126,7 +149,7 @@ export default function BookingPage() {
 
       {selected && (
         <div className="bg-white p-4 rounded border space-y-3">
-          <h2 className="font-semibold">Seus dados para solicitar a pré-consulta</h2>
+          <h2 className="font-semibold">Seus dados para solicitar a ambientação</h2>
           <input placeholder="Nome" className="border rounded p-2 w-full" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
           <div>
             <input
@@ -143,23 +166,46 @@ export default function BookingPage() {
           </div>
           <div>
             <input
+              type="tel"
+              inputMode="numeric"
+              pattern="\d*"
+              maxLength={11}
               placeholder="Telefone / WhatsApp"
               className="border rounded p-2 w-full"
               value={form.telefone}
               onChange={(e) => {
-                const value = e.target.value;
-                setForm({ ...form, telefone: value });
-                setFieldErrors((prev) => ({ ...prev, telefone: value ? validatePhone(value) : '' }));
+                const digitsOnly = e.target.value.replace(/\D/g, '');
+                setForm({ ...form, telefone: digitsOnly });
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  telefone: digitsOnly ? validatePhone(digitsOnly) : '',
+                }));
               }}
             />
             {fieldErrors.telefone && <p className="text-red-600 text-sm mt-1">{fieldErrors.telefone}</p>}
           </div>
           <textarea placeholder="Mensagem opcional" className="border rounded p-2 w-full" value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} />
-          <button disabled={!canSubmit} onClick={submit} className="bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded">Solicitar pré-consulta</button>
+          <button disabled={!canSubmit} onClick={submit} className="bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded">Solicitar ambientação</button>
         </div>
       )}
 
       {message && <p className="text-sm font-medium whitespace-pre-line">{message}</p>}
+
+      {isSuccessModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl space-y-4" role="dialog" aria-modal="true">
+            <h3 className="text-xl font-semibold">Solicitação enviada</h3>
+            <p className="text-sm leading-relaxed whitespace-pre-line">{successModalText}</p>
+            <button
+              type="button"
+              onClick={closeSuccessModal}
+              className="w-full bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold"
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
