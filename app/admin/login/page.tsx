@@ -1,10 +1,7 @@
 'use client';
 
-
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
-=======
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
@@ -37,16 +34,6 @@ export default function AdminLoginPage() {
     } finally {
       setLoading(false);
     }
-=======
-
-  async function submit() {
-    const response = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    if (response.ok) router.push('/admin');
-    else setError('Falha no login');
   }
 
   return (
@@ -75,6 +62,8 @@ export default function AdminLoginPage() {
         </button>
       </form>
 
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+
       <div className="flex justify-between text-sm">
         <Link className="text-blue-600 hover:underline" href="/admin/forgot-password">
           Esqueceu a senha?
@@ -83,12 +72,6 @@ export default function AdminLoginPage() {
           Criar conta
         </Link>
       </div>
-
-=======
-      <input className="border rounded p-2 w-full" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-      <input type="password" className="border rounded p-2 w-full" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha" />
-      <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={submit}>Entrar</button>
-      {error && <p className="text-red-600 text-sm">{error}</p>}
     </div>
   );
 }
