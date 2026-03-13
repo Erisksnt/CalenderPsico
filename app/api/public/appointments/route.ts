@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const slots = await getAvailableSlots(data);
 
   if (!slots.includes(hora)) {
-    return NextResponse.json({ error: 'Horário não disponível' }, { status: 409 });
+    return NextResponse.json({ error: 'O horário selecionado não é válido para a data informada.' }, { status: 409 });
   }
 
   try {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       appointment,
-      message: 'Sua pré-consulta foi solicitada com sucesso e está aguardando a confirmação do psicólogo.\nEssa conversa inicial servirá para que vocês possam se conhecer melhor e entender se desejam iniciar o processo terapêutico.\n\nVocê receberá a confirmação da agenda por e-mail ou contato telefônico.',
+      message: 'Sua pré-consulta foi solicitada com sucesso e está aguardando a confirmação do psicólogo.\n\nEssa conversa inicial servirá para que vocês possam se conhecer melhor e entender se desejam iniciar o processo terapêutico.\n\nVocê receberá a confirmação da agenda por e-mail ou contato telefônico.',
     });
   } catch {
     return NextResponse.json({ error: 'Conflito de agendamento' }, { status: 409 });
