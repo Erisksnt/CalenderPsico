@@ -14,8 +14,6 @@
 - Autenticação admin com cookie HttpOnly assinado por JWT.
 - Rotas administrativas validam sessão.
 - Validação com Zod em payloads de API.
-- Senhas com hash seguro (`scrypt` + salt, sem plaintext).
-- Recuperação de senha com token único e expiração de 1 hora.
 - Prevenção de double booking:
   - verificação de slot livre antes de criar consulta;
   - índice único em `appointments(data, hora)`.
@@ -32,3 +30,5 @@
 - `POST /api/admin/login`: autentica e emite cookie HttpOnly.
 - `POST /api/admin/forgot-password`: gera token de reset com 1h de validade e gera link de redefinição.
 - `POST /api/admin/reset-password`: valida token e troca senha com novo hash.
+=======
+
