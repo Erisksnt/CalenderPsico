@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 const emailSchema = z.string().trim().toLowerCase().email('Email inválido');
+const publicEmailSchema = z.string().trim().toLowerCase().email('Insira um e-mail válido');
+const publicPhoneSchema = z
+  .string()
+  .trim()
+  .refine((value) => value.replace(/\D/g, '').length >= 10, 'Insira um número de telefone válido');
 
 export const AdminLoginSchema = z.object({
   email: emailSchema,
@@ -43,8 +48,8 @@ export const AvailabilitySchema = z.object({
 
 export const BookAppointmentSchema = z.object({
   nome: z.string().min(3),
-  email: emailSchema,
-  telefone: z.string().min(8),
+  email: publicEmailSchema,
+  telefone: publicPhoneSchema,
   mensagem: z.string().max(1000).optional(),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   hora: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
