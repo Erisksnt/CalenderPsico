@@ -26,10 +26,6 @@ export async function POST(request: Request) {
       { error: 'Credenciais inválidas' },
       { status: 401 }
     );
-  const user = await prisma.user.findUnique({ where: { email } });
-
-  if (!user || !verifyPassword(password, user.password_hash)) {
-    return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
   }
 
   const token = createToken({
@@ -45,6 +41,5 @@ export async function POST(request: Request) {
         'Cache-Control': 'no-store',
       },
     }
-    { headers: { 'Set-Cookie': buildAuthCookie(token), 'Cache-Control': 'no-store' } }
   );
 }
