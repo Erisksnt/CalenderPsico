@@ -8,6 +8,7 @@ import prisma from '@/lib/database';
 import { verifyJWT, getTokenFromHeader, checkTimeSlotConflict } from '@/lib/auth';
 import { getOrCreatePatient, createAuditLog } from '@/lib/database';
 import { generateConfirmationToken, calculateEndTime } from '@/lib/utils';
+import { sendConfirmationEmail } from '@/lib/email';
 
 // GET /api/appointments?status=SCHEDULED&date_from=xxx&date_to=xxx
 export async function GET(req: NextRequest) {
@@ -201,7 +202,17 @@ export async function POST(req: NextRequest) {
       appointment
     );
 
-    // TODO: Enviar email de confirmação para o paciente
+    try {
+      await sendConfirmationEmail(patient_email, {
+        token: confirmationToken,
+        patientName: patient_name,
+        serviceName: service.name,
+        startTime: startDateTime,
+        endTime: endDateTime,
+      });
+    } catch (emailError) {
+      console.error('Erro ao enviar email de confirmação:', emailError);
+    }
 
     return NextResponse.json(
       {
