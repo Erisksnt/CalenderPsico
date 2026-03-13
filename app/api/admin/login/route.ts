@@ -13,12 +13,20 @@ export async function POST(request: Request) {
   }
 
   const { email, password } = parsed.data;
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
 
   if (!user || !verifyPassword(password, user.password_hash)) {
     return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
   }
 
   const token = createToken({ userId: user.id, email: user.email });
-  return NextResponse.json({ success: true }, { headers: { 'Set-Cookie': buildAuthCookie(token) } });
+  return NextResponse.json(
+    { success: true },
+    {
+      headers: {
+        'Set-Cookie': buildAuthCookie(token),
+        'Cache-Control': 'no-store',
+      },
+    }
+  );
 }
