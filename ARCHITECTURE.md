@@ -24,3 +24,11 @@
 3. Seleciona slot e envia `POST /api/public/appointments`.
 4. API valida dados, valida slot livre e cria consulta com `status=pending`.
 5. Admin visualiza em `/admin` e atualiza status para `confirmed` ou `cancelled`.
+
+## Registro/Login/Recuperação
+- `POST /api/admin/register`: cria conta do psicólogo com validações e hash de senha.
+- `POST /api/admin/login`: autentica e emite cookie HttpOnly.
+- `POST /api/admin/forgot-password`: gera token de reset com 1h de validade e gera link de redefinição.
+- `POST /api/admin/reset-password`: valida token e troca senha com novo hash.
+=======
+
