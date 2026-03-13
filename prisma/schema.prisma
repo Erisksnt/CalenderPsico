@@ -1,6 +1,7 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -22,13 +23,6 @@ model User {
   reset_password_expires_at DateTime?
   created_at                DateTime  @default(now())
   updated_at                DateTime  @updatedAt
-=======
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password_hash String
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-
 
   profile Profile?
 

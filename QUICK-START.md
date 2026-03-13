@@ -39,9 +39,9 @@ No painel do Supabase:
 1. Clique em **Settings** (engrenagem) no canto inferior esquerdo
 2. Vá para **API**
 3. Copie:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon public** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **service_role secret** → `SUPABASE_SERVICE_ROLE_KEY`
+   - **Project URL** → `https://mylvcaviceelxhylnezz.supabase.co`
+   - **anon public** → `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnbmR2c255amJ4cWhpY3Bzd21iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMzM5MzksImV4cCI6MjA4ODgwOTkzOX0.51bo36_seVY9YzM1mqpWzdbPgXKWQ4ddIJJzKXkuTw8`
+   - **service_role secret** → `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnbmR2c255amJ4cWhpY3Bzd21iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzIzMzkzOSwiZXhwIjoyMDg4ODA5OTM5fQ._Wz1ra1DNjFdEmyrge5mZQnq6RX7K8SRJI-BMLBoYtY`
 
 ### 1.3 Criar Tabelas
 
