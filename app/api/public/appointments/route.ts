@@ -3,6 +3,10 @@ import prisma from '@/lib/database';
 import { BookAppointmentSchema } from '@/lib/validators';
 import { getAvailableSlots } from '@/lib/scheduling';
 
+function getTodayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export async function POST(request: Request) {
   const body = await request.json();
   const parsed = BookAppointmentSchema.safeParse(body);
@@ -12,6 +16,11 @@ export async function POST(request: Request) {
   }
 
   const { nome, email, telefone, mensagem, data, hora } = parsed.data;
+
+  if (data < getTodayISO()) {
+    return NextResponse.json({ error: 'Não é possível solicitar pré-consulta em datas passadas.' }, { status: 400 });
+  }
+
   const slots = await getAvailableSlots(data);
 
   if (!slots.includes(hora)) {
@@ -33,7 +42,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       appointment,
-      message: 'Solicitação enviada. O psicólogo entrará em contato para confirmar.',
+      message: 'Sua pré-consulta foi solicitada com sucesso e está aguardando a confirmação do psicólogo.\nEssa conversa inicial servirá para que vocês possam se conhecer melhor e entender se desejam iniciar o processo terapêutico.\n\nVocê receberá a confirmação da agenda por e-mail ou contato telefônico.',
     });
   } catch {
     return NextResponse.json({ error: 'Conflito de agendamento' }, { status: 409 });

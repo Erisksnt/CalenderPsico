@@ -57,7 +57,6 @@ export const UpdateAppointmentStatusSchema = z.object({
 /* legacy compatibility */
 export const LoginSchema = AdminLoginSchema;
 export const RegisterSchema = AdminRegisterSchema;
-
 export const PsychologistProfileSchema = ProfileSchema;
 export const CreateAppointmentSchema = BookAppointmentSchema;
 export const UpdateAppointmentSchema = UpdateAppointmentStatusSchema;
