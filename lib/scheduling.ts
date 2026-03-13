@@ -28,7 +28,7 @@ export async function getAvailableSlots(date: string) {
     select: { hora: true },
   });
 
-  const blocked = new Set(appointments.map((a) => a.hora));
+  const blocked = new Set(appointments.map((a: { hora: string }) => a.hora));
   const slots: string[] = [];
 
   for (let value = start; value + config.session_duration <= end; value += config.session_duration) {
