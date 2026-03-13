@@ -79,6 +79,9 @@ export default function AdminPanel() {
   }
 
   const enabledAvailability = useMemo(() => availability.filter((item) => item.enabled), [availability]);
+  const pendingAppointments = useMemo(() => appointments.filter((a) => a.status === 'pending'), [appointments]);
+  const doneAppointments = useMemo(() => appointments.filter((a) => a.status === 'confirmed' || a.status === 'completed'), [appointments]);
+  const cancelledAppointments = useMemo(() => appointments.filter((a) => a.status === 'cancelled'), [appointments]);
 
   return (
     <div className="space-y-6 pb-8">
@@ -86,7 +89,7 @@ export default function AdminPanel() {
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-xl">Perfil do Psicólogo</h2>
           {!editingProfile && (
-            <button className="text-blue-700 font-medium" onClick={() => setEditingProfile(true)}>✏ Editar perfil</button>
+            <button className="text-blue-700 font-medium" onClick={() => setEditingProfile(true)}>Editar perfil</button>
           )}
         </div>
 
@@ -128,7 +131,7 @@ export default function AdminPanel() {
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-xl">Disponibilidade de pré-consulta</h2>
           {!editingAvailability && (
-            <button className="text-blue-700 font-medium" onClick={() => setEditingAvailability(true)}>✏ Editar disponibilidade</button>
+            <button className="text-blue-700 font-medium" onClick={() => setEditingAvailability(true)}>Editar disponibilidade</button>
           )}
         </div>
 
@@ -158,10 +161,12 @@ export default function AdminPanel() {
         )}
       </section>
 
-      <section className="bg-white border rounded p-5">
-        <h2 className="font-bold text-xl mb-3">Solicitações de pré-consulta</h2>
+      <section className="bg-white border rounded p-5 space-y-6">
+        <h2 className="font-bold text-xl">Solicitações de pré-consulta</h2>
+
         <div className="space-y-3">
-          {appointments.map((a) => (
+          <h3 className="font-semibold text-lg">Solicitações pendentes de validação</h3>
+          {pendingAppointments.map((a) => (
             <div key={a.id} className="border rounded p-3 space-y-1">
               <p className="font-semibold">{a.nome_paciente}</p>
               <p className="text-sm">Email: {a.email}</p>
@@ -171,15 +176,45 @@ export default function AdminPanel() {
               <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
               <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
 
-              {a.status === 'pending' && (
-                <div className="flex gap-2 pt-1">
-                  <button className="px-3 py-1 border rounded" onClick={() => updateStatus(a.id, 'confirmed')}>Confirmar pré-consulta</button>
-                  <button className="px-3 py-1 border rounded" onClick={() => updateStatus(a.id, 'cancelled')}>Cancelar solicitação</button>
-                </div>
-              )}
+              <div className="flex gap-2 pt-1">
+                <button className="px-3 py-1 border rounded" onClick={() => updateStatus(a.id, 'confirmed')}>Confirmar pré-consulta</button>
+                <button className="px-3 py-1 border rounded" onClick={() => updateStatus(a.id, 'cancelled')}>Cancelar solicitação</button>
+              </div>
             </div>
           ))}
-          {appointments.length === 0 && <p className="text-sm text-gray-500">Ainda não há solicitações de pré-consulta.</p>}
+          {pendingAppointments.length === 0 && <p className="text-sm text-gray-500">Nenhuma solicitação pendente de validação.</p>}
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg">Pré-consultas confirmadas / realizadas</h3>
+          {doneAppointments.map((a) => (
+            <div key={a.id} className="border rounded p-3 space-y-1">
+              <p className="font-semibold">{a.nome_paciente}</p>
+              <p className="text-sm">Email: {a.email}</p>
+              <p className="text-sm">Telefone: {a.telefone}</p>
+              <p className="text-sm">Data solicitada: {a.data}</p>
+              <p className="text-sm">Horário solicitado: {a.hora}</p>
+              <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
+              <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
+            </div>
+          ))}
+          {doneAppointments.length === 0 && <p className="text-sm text-gray-500">Nenhuma pré-consulta confirmada ou realizada.</p>}
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg">Solicitações canceladas</h3>
+          {cancelledAppointments.map((a) => (
+            <div key={a.id} className="border rounded p-3 space-y-1">
+              <p className="font-semibold">{a.nome_paciente}</p>
+              <p className="text-sm">Email: {a.email}</p>
+              <p className="text-sm">Telefone: {a.telefone}</p>
+              <p className="text-sm">Data solicitada: {a.data}</p>
+              <p className="text-sm">Horário solicitado: {a.hora}</p>
+              <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
+              <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
+            </div>
+          ))}
+          {cancelledAppointments.length === 0 && <p className="text-sm text-gray-500">Nenhuma solicitação cancelada.</p>}
         </div>
       </section>
     </div>
