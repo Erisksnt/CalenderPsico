@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const { nome, email, telefone, mensagem, data, hora } = parsed.data;
 
   if (data < getTodayISO()) {
-    return NextResponse.json({ error: 'Não é possível solicitar pré-consulta em datas passadas.' }, { status: 400 });
+    return NextResponse.json({ error: 'Não é possível solicitar ambientação em datas passadas.' }, { status: 400 });
   }
 
   const slots = await getAvailableSlots(data);
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       appointment,
-      message: 'Sua pré-consulta foi solicitada com sucesso e está aguardando a confirmação do psicólogo.\n\nEssa conversa inicial servirá para que vocês possam se conhecer melhor e entender se desejam iniciar o processo terapêutico.\n\nVocê receberá a confirmação da agenda por e-mail ou contato telefônico.',
+      message: 'Sua ambientação foi solicitada com sucesso e está aguardando a confirmação do psicólogo.\n\nEssa conversa inicial servirá para que vocês possam se conhecer melhor e entender se desejam iniciar o processo terapêutico.\n\nVocê receberá a confirmação da agenda por e-mail ou contato telefônico.',
     });
   } catch {
     return NextResponse.json({ error: 'Conflito de agendamento' }, { status: 409 });
