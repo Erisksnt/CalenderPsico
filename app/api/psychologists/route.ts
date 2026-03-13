@@ -1,6 +1,8 @@
 // app/api/psychologists/route.ts
 // GET: Listar psicólogos públicos
 
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/database';
 
