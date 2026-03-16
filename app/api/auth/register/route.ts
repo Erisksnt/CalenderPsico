@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { RegisterSchema } from '@/lib/validators';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import prisma from '@/lib/database';
 import { sendSuccess, sendError, sendValidationError } from '@/lib/api-response';
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Cria usuário no Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: authError } = await getSupabaseAdmin().auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
 
       if (existingCRP) {
         // Deleta o usuário criado se o CRP for duplicado
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        await getSupabaseAdmin().auth.admin.deleteUser(authData.user.id);
         await prisma.user.delete({ where: { id: user.id } });
 
         return NextResponse.json(
