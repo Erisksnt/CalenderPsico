@@ -2,7 +2,7 @@
 // Endpoint para fazer logout
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Faz logout no Supabase
-    const { error } = await supabaseClient.auth.signOut();
+    const { error } = await getSupabaseClient().auth.signOut();
 
     if (error) {
       return NextResponse.json(

@@ -7,33 +7,68 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
+let missingEnvWarned = false;
+
+function warnMissingSupabaseEnv() {
+  if (missingEnvWarned) return;
+  missingEnvWarned = true;
   console.warn('⚠️ Variáveis de ambiente Supabase não configuradas');
 }
+
+function getRequiredEnv(value: string, envName: string) {
+  if (!value) {
+    warnMissingSupabaseEnv();
+    throw new Error(`Variável de ambiente obrigatória ausente: ${envName}`);
+  }
+
+  return value;
+}
+
+let cachedSupabaseClient: ReturnType<typeof createClient> | null = null;
+let cachedSupabaseAdmin: ReturnType<typeof createClient> | null = null;
 
 /**
  * Cliente Supabase para operações do lado do cliente
  * Use este client em componentes React
  */
-export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+export function getSupabaseClient() {
+  if (!cachedSupabaseClient) {
+    cachedSupabaseClient = createClient(
+      getRequiredEnv(supabaseUrl, 'NEXT_PUBLIC_SUPABASE_URL'),
+      getRequiredEnv(supabaseAnonKey, 'NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    );
+  }
+
+  return cachedSupabaseClient;
+}
 
 /**
  * Cliente Supabase com service role key para operações do servidor
  * Use apenas em API Routes (nunca exponha a service role key ao cliente)
  */
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+export function getSupabaseAdmin() {
+  if (!cachedSupabaseAdmin) {
+    cachedSupabaseAdmin = createClient(
+      getRequiredEnv(supabaseUrl, 'NEXT_PUBLIC_SUPABASE_URL'),
+      getRequiredEnv(supabaseServiceRoleKey, 'SUPABASE_SERVICE_ROLE_KEY'),
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+  }
+
+  return cachedSupabaseAdmin;
+}
 
 /**
  * Registra um novo usuário via Supabase Auth
  */
 export async function signUpUser(email: string, password: string) {
   try {
-    const { data, error } = await supabaseClient.auth.signUp({
+    const { data, error } = await getSupabaseClient().auth.signUp({
       email,
       password,
       options: {
@@ -56,7 +91,7 @@ export async function signUpUser(email: string, password: string) {
  */
 export async function signInWithEmail(email: string, password: string) {
   try {
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
+    const { data, error } = await getSupabaseClient().auth.signInWithPassword({
       email,
       password,
     });
@@ -76,7 +111,7 @@ export async function signInWithEmail(email: string, password: string) {
  */
 export async function signOut() {
   try {
-    const { error } = await supabaseClient.auth.signOut();
+    const { error } = await getSupabaseClient().auth.signOut();
     if (error) {
       throw new Error(error.message);
     }
@@ -90,7 +125,7 @@ export async function signOut() {
  */
 export async function getSession() {
   try {
-    const { data, error } = await supabaseClient.auth.getSession();
+    const { data, error } = await getSupabaseClient().auth.getSession();
     if (error) {
       throw new Error(error.message);
     }
@@ -105,7 +140,7 @@ export async function getSession() {
  */
 export async function getCurrentUser() {
   try {
-    const { data, error } = await supabaseClient.auth.getUser();
+    const { data, error } = await getSupabaseClient().auth.getUser();
     if (error) {
       throw new Error(error.message);
     }
@@ -120,7 +155,7 @@ export async function getCurrentUser() {
  */
 export async function resetPassword(email: string) {
   try {
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    const { error } = await getSupabaseClient().auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
     });
 
@@ -139,7 +174,7 @@ export async function resetPassword(email: string) {
  */
 export async function updatePassword(newPassword: string) {
   try {
-    const { error } = await supabaseClient.auth.updateUser({
+    const { error } = await getSupabaseClient().auth.updateUser({
       password: newPassword,
     });
 
@@ -159,7 +194,7 @@ export async function updatePassword(newPassword: string) {
  */
 export async function getAdminUser(userId: string) {
   try {
-    const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const { data, error } = await getSupabaseAdmin().auth.admin.getUserById(userId);
 
     if (error) {
       throw new Error(error.message);
@@ -177,7 +212,7 @@ export async function getAdminUser(userId: string) {
  */
 export async function createAdminUser(email: string, password: string) {
   try {
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    const { data, error } = await getSupabaseAdmin().auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -199,7 +234,7 @@ export async function createAdminUser(email: string, password: string) {
  */
 export async function deleteAdminUser(userId: string) {
   try {
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    const { error } = await getSupabaseAdmin().auth.admin.deleteUser(userId);
 
     if (error) {
       throw new Error(error.message);
