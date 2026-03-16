@@ -2,8 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-const weekdays = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-const defaultItems = weekdays.map((_, weekday) => ({ weekday, enabled: false, start_time: '09:00', end_time: '18:00', session_duration: 50 }));
+const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado'];
+const defaultItems = weekdays.map((_, weekday) => ({
+  weekday,
+  enabled: false,
+  start_time: '09:00',
+  end_time: '18:00',
+  session_duration: 50,
+}));
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 type Appointment = {
   id: string;
@@ -29,6 +44,8 @@ export default function AdminPanel() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [editingProfile, setEditingProfile] = useState(true);
   const [editingAvailability, setEditingAvailability] = useState(true);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
 
   async function loadAll() {
     const [p, a, ap] = await Promise.all([
@@ -52,13 +69,25 @@ export default function AdminPanel() {
     loadAll();
   }, []);
 
+  useEffect(() => {
+    if (photoFile) {
+      const url = URL.createObjectURL(photoFile);
+      setPhotoPreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setPhotoPreview(profile.photo_url || '');
+  }, [photoFile, profile.photo_url]);
+
   async function saveProfile() {
+    const specialties = profile.specialties.split(',').map((s) => s.trim()).filter(Boolean);
+    const photoUrl = photoFile ? await fileToDataUrl(photoFile) : profile.photo_url;
     await fetch('/api/admin/profile', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...profile, specialties: profile.specialties.split(',').map((s) => s.trim()).filter(Boolean) }),
+      body: JSON.stringify({ ...profile, specialties, photo_url: photoUrl }),
     });
     await loadAll();
     setEditingProfile(false);
+    setPhotoFile(null);
   }
 
   async function saveAvailability() {
@@ -87,20 +116,59 @@ export default function AdminPanel() {
     <div className="space-y-6 pb-8">
       <section className="bg-white border rounded p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-xl">Perfil do Psicólogo</h2>
+          <h2 className="font-bold text-xl text-[#101010]">Perfil do Psicólogo</h2>
           {!editingProfile && (
-            <button className="text-blue-700 font-medium" onClick={() => setEditingProfile(true)}>Editar perfil</button>
+            <button
+              className="text-[#C2183A] font-medium transition hover:text-[#a0162f]"
+              onClick={() => setEditingProfile(true)}
+            >
+              Editar perfil
+            </button>
           )}
         </div>
 
         {editingProfile ? (
           <div className="space-y-3">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-[#4d4d4d]">Foto de perfil</p>
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-20 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+                  {photoPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photoPreview} alt="Prévia da foto" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[11px] font-semibold uppercase tracking-[0.3em] text-[#4d4d4d]">
+                      Foto
+                    </div>
+                  )}
+                </div>
+                <label className="cursor-pointer rounded-full border border-[#C2183A] px-4 py-2 text-sm font-semibold text-[#C2183A] transition hover:bg-[#ffe5e7]">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      setPhotoFile(file || null);
+                    }}
+                  />
+                  Selecionar imagem
+                </label>
+                {photoFile && (
+                  <span className="text-sm text-[#4d4d4d]">{photoFile.name}</span>
+                )}
+              </div>
+            </div>
             <input className="border p-2 rounded w-full" placeholder="Nome completo" value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} />
-            <input className="border p-2 rounded w-full" placeholder="URL da foto" value={profile.photo_url} onChange={(e) => setProfile({ ...profile, photo_url: e.target.value })} />
             <textarea className="border p-2 rounded w-full" placeholder="Bio profissional / sobre" value={profile.professional_bio} onChange={(e) => setProfile({ ...profile, professional_bio: e.target.value })} />
             <textarea className="border p-2 rounded w-full" placeholder="Método de trabalho" value={profile.work_method} onChange={(e) => setProfile({ ...profile, work_method: e.target.value })} />
             <input className="border p-2 rounded w-full" placeholder="Especialidades separadas por vírgula" value={profile.specialties} onChange={(e) => setProfile({ ...profile, specialties: e.target.value })} />
-            <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={saveProfile}>Salvar perfil</button>
+            <button
+              className="inline-flex items-center justify-center rounded-full bg-[#C2183A] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#a0162f]"
+              onClick={saveProfile}
+            >
+              Salvar perfil
+            </button>
           </div>
         ) : (
           <div className="border rounded-xl p-4 bg-gray-50 space-y-3">
@@ -129,9 +197,14 @@ export default function AdminPanel() {
 
       <section className="bg-white border rounded p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-xl">Disponibilidade de pré-consulta</h2>
+          <h2 className="font-bold text-xl text-[#101010]">Disponibilidade de pré-consulta</h2>
           {!editingAvailability && (
-            <button className="text-blue-700 font-medium" onClick={() => setEditingAvailability(true)}>Editar disponibilidade</button>
+            <button
+              className="text-[#C2183A] font-medium transition hover:text-[#a0162f]"
+              onClick={() => setEditingAvailability(true)}
+            >
+              Editar disponibilidade
+            </button>
           )}
         </div>
 
@@ -141,16 +214,26 @@ export default function AdminPanel() {
               {availability.map((item, i) => (
                 <div key={item.weekday} className="grid grid-cols-5 gap-2 items-center">
                   <span>{weekdays[item.weekday]}</span>
-                  <input type="checkbox" checked={item.enabled} onChange={(e) => {
-                    const next = [...availability]; next[i].enabled = e.target.checked; setAvailability(next);
-                  }} />
+                  <input
+                    type="checkbox"
+                    className="availability-checkbox"
+                    checked={item.enabled}
+                    onChange={(e) => {
+                      const next = [...availability]; next[i].enabled = e.target.checked; setAvailability(next);
+                    }}
+                  />
                   <input className="border p-1 rounded" type="time" value={item.start_time} onChange={(e) => { const next = [...availability]; next[i].start_time = e.target.value; setAvailability(next); }} />
                   <input className="border p-1 rounded" type="time" value={item.end_time} onChange={(e) => { const next = [...availability]; next[i].end_time = e.target.value; setAvailability(next); }} />
                   <input className="border p-1 rounded" type="number" min={30} max={120} value={item.session_duration} onChange={(e) => { const next = [...availability]; next[i].session_duration = Number(e.target.value); setAvailability(next); }} />
                 </div>
               ))}
             </div>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={saveAvailability}>Salvar disponibilidade</button>
+            <button
+              className="inline-flex items-center justify-center rounded-full bg-[#C2183A] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#a0162f]"
+              onClick={saveAvailability}
+            >
+              Salvar disponibilidade
+            </button>
           </>
         ) : (
           <div className="space-y-1 text-sm text-gray-800">
@@ -177,8 +260,18 @@ export default function AdminPanel() {
               <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
 
               <div className="flex gap-2 pt-1">
-                <button className="px-3 py-1 border rounded" onClick={() => updateStatus(a.id, 'confirmed')}>Confirmar pré-consulta</button>
-                <button className="px-3 py-1 border rounded" onClick={() => updateStatus(a.id, 'cancelled')}>Cancelar solicitação</button>
+                <button
+                  className="px-3 py-1 rounded-full bg-[#C2183A] text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#a0162f]"
+                  onClick={() => updateStatus(a.id, 'confirmed')}
+                >
+                  Confirmar pré-consulta
+                </button>
+                <button
+                  className="px-3 py-1 rounded-full border border-[#C2183A] text-xs font-semibold uppercase tracking-wide text-[#C2183A] transition hover:bg-[#ffe5e7]"
+                  onClick={() => updateStatus(a.id, 'cancelled')}
+                >
+                  Cancelar solicitação
+                </button>
               </div>
             </div>
           ))}

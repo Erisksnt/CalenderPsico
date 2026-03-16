@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
@@ -38,14 +38,14 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 border rounded space-y-3">
-      <h1 className="text-2xl font-bold">Login do psicólogo</h1>
+    <div className="max-w-md mx-auto bg-white p-6 border rounded space-y-4">
+      <h1 className="text-2xl font-bold text-[#101010]">Login do psicólogo</h1>
 
       <form onSubmit={submit} className="space-y-3">
         <input
           type="email"
           required
-          className="border rounded p-2 w-full"
+          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#C2183A] focus:ring-2 focus:ring-[#C2183A]/30"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email"
@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
         <input
           type="password"
           required
-          className="border rounded p-2 w-full"
+          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#C2183A] focus:ring-2 focus:ring-[#C2183A]/30"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Senha"
@@ -63,22 +63,19 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-blue-300"
+          className="w-full rounded-full bg-[#C2183A] px-4 py-3 text-sm font-semibold text-white shadow transition hover:bg-[#a0162f] disabled:opacity-60"
         >
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
       </form>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-[#C2183A] text-sm">{error}</p>}
 
-      <div className="flex justify-between text-sm">
-        <Link className="text-blue-600 hover:underline" href="/admin/forgot-password">
+      <div className="space-y-1 text-sm text-[#4d4d4d]">
+        <Link className="text-[#C2183A] hover:text-[#a0162f]" href="/admin/forgot-password">
           Esqueceu a senha?
         </Link>
-
-        <Link className="text-blue-600 hover:underline" href="/admin/register">
-          Criar conta
-        </Link>
+        <p>Acesso exclusivo para a psicóloga responsável</p>
       </div>
     </div>
   );

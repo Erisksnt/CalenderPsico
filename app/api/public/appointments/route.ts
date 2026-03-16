@@ -4,7 +4,9 @@ import { BookAppointmentSchema } from '@/lib/validators';
 import { getAvailableSlots } from '@/lib/scheduling';
 
 function getTodayISO() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
 }
 
 export async function POST(request: Request) {

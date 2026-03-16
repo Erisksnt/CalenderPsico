@@ -87,7 +87,7 @@ export default function AvailabilityPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja deletar este horário?')) return;
+    if (!confirm('Tem certeza de que deseja deletar este horário?')) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -135,11 +135,11 @@ export default function AvailabilityPage() {
               onChange={(e) => setDayOfWeek(e.target.value)}
               className="w-full border rounded px-4 py-2"
             >
-              <option value="MONDAY">Segunda</option>
-              <option value="TUESDAY">Terça</option>
-              <option value="WEDNESDAY">Quarta</option>
-              <option value="THURSDAY">Quinta</option>
-              <option value="FRIDAY">Sexta</option>
+              <option value="MONDAY">Segunda-feira</option>
+              <option value="TUESDAY">Terça-feira</option>
+              <option value="WEDNESDAY">Quarta-feira</option>
+              <option value="THURSDAY">Quinta-feira</option>
+              <option value="FRIDAY">Sexta-feira</option>
               <option value="SATURDAY">Sábado</option>
               <option value="SUNDAY">Domingo</option>
             </select>
@@ -168,7 +168,7 @@ export default function AvailabilityPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="w-full bg-[#C2183A] text-white font-bold py-2 rounded hover:bg-[#a0162f] disabled:opacity-50"
           >
             {isSubmitting ? 'Adicionando...' : 'Adicionar Horário'}
           </button>
@@ -195,7 +195,7 @@ export default function AvailabilityPage() {
                   </div>
                   <button
                     onClick={() => handleDelete(avail.id)}
-                    className="text-red-600 hover:text-red-700 font-bold"
+                    className="text-[#C2183A] hover:text-[#a0162f] font-bold"
                   >
                     Deletar
                   </button>

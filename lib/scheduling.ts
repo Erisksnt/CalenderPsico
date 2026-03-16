@@ -26,9 +26,8 @@ function getCurrentTime() {
 
 export async function getAvailableSlots(date: string) {
   const weekday = new Date(`${date}T00:00:00`).getDay();
-  const config = await prisma.availability.findFirst({ where: { weekday } });
-
-  if (!config || !config.enabled) return [];
+  const config = await prisma.availability.findFirst({ where: { weekday, enabled: true } });
+  if (!config) return [];
 
   const start = toMinutes(config.start_time);
   const end = toMinutes(config.end_time);
@@ -54,4 +53,14 @@ export async function getAvailableSlots(date: string) {
   }
 
   return slots;
+}
+
+export async function getEnabledWeekdays() {
+  const rows = await prisma.availability.findMany({
+    where: { enabled: true },
+    select: { weekday: true },
+  });
+
+  const weekdays = Array.from(new Set(rows.map((row) => row.weekday)));
+  return weekdays.sort((a, b) => a - b);
 }

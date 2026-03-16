@@ -1,6 +1,3 @@
-// app/(psychologist)/profile/page.tsx
-// Página para editar perfil do psicólogo
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,54 +5,80 @@ import { useRouter } from 'next/navigation';
 
 interface PsychologistProfile {
   id: string;
-  name: string;
-  bio?: string;
+  user_id: string;
+  full_name: string;
+  professional_bio: string;
+  work_method: string;
   specialties: string[];
-  registration_number: string;
-  phone?: string;
+  photo_url?: string | null;
 }
 
+interface ProfileFormData {
+  full_name: string;
+  professional_bio: string;
+  work_method: string;
+  specialties: string[];
+  photo_url: string;
+}
+
+const initialFormData: ProfileFormData = {
+  full_name: '',
+  professional_bio: '',
+  work_method: '',
+  specialties: [],
+  photo_url: '',
+};
+
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<PsychologistProfile | null>(null);
+  const [formData, setFormData] = useState<ProfileFormData>(initialFormData);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [formData, setFormData] = useState<Partial<PsychologistProfile>>({});
   const router = useRouter();
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    const loadProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/psychologists/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-  const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/psychologists/profile', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setProfile(data.data);
-        setFormData(data.data);
+        const data = await response.json();
+        if (data.success) {
+          const received: PsychologistProfile = data.data;
+          setFormData({
+            full_name: received.full_name || '',
+            professional_bio: received.professional_bio || '',
+            work_method: received.work_method || '',
+            specialties: received.specialties || [],
+            photo_url: received.photo_url || '',
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar perfil:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    void loadProfile();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
     if (name === 'specialties') {
-      setFormData({
-        ...formData,
-        specialties: value.split(',').map((s) => s.trim()),
-      });
+      const parsed = value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      setFormData((prev) => ({ ...prev, specialties: parsed }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -71,14 +94,24 @@ export default function ProfilePage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          specialties: formData.specialties,
+        }),
       });
 
       const data = await response.json();
       if (data.success) {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
-        setProfile(data.data);
+        const updated: PsychologistProfile = data.data;
+        setFormData({
+          full_name: updated.full_name || '',
+          professional_bio: updated.professional_bio || '',
+          work_method: updated.work_method || '',
+          specialties: updated.specialties || [],
+          photo_url: updated.photo_url || '',
+        });
       }
     } catch (error) {
       console.error('Erro ao salvar perfil:', error);
@@ -88,68 +121,56 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return <div className="text-center py-8">Carregando...</div>;
+    return <div className="text-center py-8">Carregando perfil...</div>;
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Editar Perfil</h1>
+      <h1 className="text-3xl font-bold mb-8">Editar perfil clínico</h1>
 
       {success && (
         <div className="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          ✅ Perfil atualizado com sucesso!
+          ✓ Perfil atualizado com sucesso!
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-8 space-y-6">
         <div>
-          <label className="block text-gray-700 font-bold mb-2">Nome Completo</label>
+          <label className="block text-gray-700 font-bold mb-2">Nome completo</label>
           <input
             type="text"
-            name="name"
-            value={formData.name || ''}
+            name="full_name"
+            value={formData.full_name}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600"
+            className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#C2183A]"
             required
           />
         </div>
 
         <div>
-          <label className="block text-gray-700 font-bold mb-2">Telefone</label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone || ''}
-            onChange={handleChange}
-            placeholder="(11) 98765-4321"
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-700 font-bold mb-2">Apresentação Profissional</label>
+          <label className="block text-gray-700 font-bold mb-2">Apresentação profissional</label>
           <textarea
-            name="bio"
-            value={formData.bio || ''}
+            name="professional_bio"
+            value={formData.professional_bio}
             onChange={handleChange}
             rows={4}
-            placeholder="Descreva sua experiência, abordagens terapêuticas, e especialidades..."
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600"
+            placeholder="Descreva sua experiência, abordagem terapêutica e foco de atendimento."
+            className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#C2183A]"
+            required
           />
         </div>
 
         <div>
-          <label className="block text-gray-700 font-bold mb-2">CRP (Conselho Regional de Psicologia)</label>
-          <input
-            type="text"
-            name="registration_number"
-            value={formData.registration_number || ''}
+          <label className="block text-gray-700 font-bold mb-2">Método de trabalho</label>
+          <textarea
+            name="work_method"
+            value={formData.work_method}
             onChange={handleChange}
-            placeholder="12345/SP"
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600 bg-gray-100 cursor-not-allowed"
-            disabled
+            rows={3}
+            placeholder="Explique como você conduz o acompanhamento e quais práticas são prioritárias."
+            className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#C2183A]"
+            required
           />
-          <p className="text-sm text-gray-600 mt-1">CRP não pode ser alterado</p>
         </div>
 
         <div>
@@ -157,25 +178,37 @@ export default function ProfilePage() {
           <input
             type="text"
             name="specialties"
-            value={formData.specialties?.join(', ') || ''}
+            value={formData.specialties.join(', ')}
             onChange={handleChange}
             placeholder="Ansiedade, Depressão, Relacionamentos..."
-            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600"
+            className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#C2183A]"
           />
         </div>
 
-        <div className="flex gap-4 pt-4">
+        <div>
+          <label className="block text-gray-700 font-bold mb-2">URL da foto de perfil (opcional)</label>
+          <input
+            type="text"
+            name="photo_url"
+            value={formData.photo_url}
+            onChange={handleChange}
+            placeholder="https://exemplo.com/foto.jpg"
+            className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#C2183A]"
+          />
+        </div>
+
+        <div className="flex flex-col gap-3 pt-4 md:flex-row">
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 bg-blue-600 text-white py-3 rounded font-bold hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 bg-[#C2183A] text-white py-3 rounded-full font-semibold hover:bg-[#a0162f] disabled:opacity-60 transition"
           >
-            {saving ? 'Salvando...' : 'Salvar Alterações'}
+            {saving ? 'Salvando...' : 'Salvar alterações'}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 bg-gray-300 text-gray-800 py-3 rounded font-bold hover:bg-gray-400"
+            className="flex-1 border border-gray-300 text-gray-800 py-3 rounded-full font-semibold hover:border-[#C2183A] hover:text-[#C2183A] transition"
           >
             Cancelar
           </button>

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getAvailableSlots } from '@/lib/scheduling';
+import { getAvailableSlots, getEnabledWeekdays } from '@/lib/scheduling';
 
 function getTodayISO() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
 }
 
 export async function GET(request: Request) {
@@ -17,6 +19,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Não é possível visualizar horários para datas passadas.' }, { status: 400 });
   }
 
-  const slots = await getAvailableSlots(date);
-  return NextResponse.json({ date, slots });
+  const [slots, enabledWeekdays] = await Promise.all([
+    getAvailableSlots(date),
+    getEnabledWeekdays(),
+  ]);
+
+  return NextResponse.json({ date, slots, enabledWeekdays });
 }
