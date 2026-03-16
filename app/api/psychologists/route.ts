@@ -1,29 +1,29 @@
 // app/api/psychologists/route.ts
 // GET: Listar psicólogos públicos
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import prisma from '@/lib/database';
 
 // GET /api/psychologists
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const psychologists = await prisma.psychologist.findMany({
-      include: {
-        services: true,
-        availabilities: true,
-      },
-      orderBy: { name: 'asc' },
+    const profiles = await prisma.profile.findMany({
+      orderBy: { full_name: 'asc' },
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: psychologists,
-      },
-      { status: 200 }
-    );
+    const psychologists = profiles.map((profile) => ({
+      id: profile.id,
+      user_id: profile.user_id,
+      name: profile.full_name,
+      bio: profile.professional_bio,
+      specialties: profile.specialties,
+      services: [],
+      availabilities: [],
+    }));
+
+    return NextResponse.json({ success: true, data: psychologists }, { status: 200 });
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('❌ Erro ao listar psicólogos:', errorMessage);
