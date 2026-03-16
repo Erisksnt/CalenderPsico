@@ -2,10 +2,9 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 
-
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const params = useSearchParams();
   const token = params.get('token') || '';
   const [password, setPassword] = useState('');
@@ -41,5 +40,13 @@ export default function ResetPasswordPage() {
       {error && <p className="text-red-600 text-sm">{error}</p>}
       <p className="text-sm"><Link className="text-blue-600" href="/admin/login">Ir para login</Link></p>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="max-w-md mx-auto">Carregando...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

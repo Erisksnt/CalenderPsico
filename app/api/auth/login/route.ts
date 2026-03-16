@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { LoginSchema } from '@/lib/validators';
-import { supabaseClient } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 import prisma from '@/lib/database';
 import { generateJWT } from '@/lib/auth';
 
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const { email, password } = validation.data;
 
     // Verifica credenciais com Supabase
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
+    const { data, error } = await getSupabaseClient().auth.signInWithPassword({
       email,
       password,
     });

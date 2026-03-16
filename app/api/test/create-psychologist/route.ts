@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/database';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   try {
     // Cria usuário no Supabase
     const authEmail = `psiclogo${Date.now()}@teste.com`;
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: authError } = await getSupabaseAdmin().auth.admin.createUser({
       email: authEmail,
       password: 'Senha123!',
       email_confirm: true,
