@@ -2,6 +2,8 @@
 // GET: Listar agendamentos
 // POST: Criar novo agendamento
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { CreateAppointmentSchema } from '@/lib/validators';
 import prisma from '@/lib/database';
