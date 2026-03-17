@@ -37,12 +37,18 @@ export const ResetPasswordSchema = z.object({
   password: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres'),
 });
 
+const photoUrlSchema = z.union([
+  z.string().url(),
+  z.string().regex(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, 'URL da foto inválida'),
+  z.literal(''),
+]);
+
 export const ProfileSchema = z.object({
-  full_name: z.string().min(3),
-  photo_url: z.string().url().optional().or(z.literal('')),
-  professional_bio: z.string().min(20),
-  work_method: z.string().min(20),
-  specialties: z.array(z.string().min(2)).min(1),
+  full_name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
+  photo_url: photoUrlSchema.optional(),
+  professional_bio: z.string().min(3, 'Bio deve ter no mínimo 3 caracteres'),
+  work_method: z.string().min(3, 'Método de trabalho deve ter no mínimo 3 caracteres'),
+  specialties: z.array(z.string().min(2)).default([]),
 });
 
 export const AvailabilityItemSchema = z.object({
