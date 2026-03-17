@@ -4,22 +4,31 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-const weekdays = [
-  'SUNDAY',
-  'MONDAY',
-  'TUESDAY',
-  'WEDNESDAY',
-  'THURSDAY',
-  'FRIDAY',
-  'SATURDAY',
+const WEEKDAY_OPTIONS = [
+  { value: 'MONDAY', label: 'Segunda-feira' },
+  { value: 'TUESDAY', label: 'Terça-feira' },
+  { value: 'WEDNESDAY', label: 'Quarta-feira' },
+  { value: 'THURSDAY', label: 'Quinta-feira' },
+  { value: 'FRIDAY', label: 'Sexta-feira' },
+  { value: 'SATURDAY', label: 'Sábado' },
+  { value: 'SUNDAY', label: 'Domingo' },
 ];
-const defaultItems = weekdays.map((day_of_week) => ({
-  day_of_week,
-  is_blocked: true,
-  start_time: '09:00',
-  end_time: '18:00',
-  session_duration: 50,
-}));
+const WEEKDAY_LABELS = WEEKDAY_OPTIONS.reduce<Record<string, string>>((map, option) => {
+  map[option.value] = option.label;
+  return map;
+}, {});
+const getWeekdayLabel = (day_of_week: string) => WEEKDAY_LABELS[day_of_week] ?? day_of_week;
+
+const buildEmptyAvailability = () =>
+  WEEKDAY_OPTIONS.map(({ value }) => ({
+    day_of_week: value,
+    is_blocked: true,
+    start_time: '09:00',
+    end_time: '18:00',
+    session_duration: 50,
+  }));
+
+type AvailabilityFormItem = ReturnType<typeof buildEmptyAvailability>[number];
 
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -111,7 +120,7 @@ async function safeFetchJson<T>(
 
 export default function AdminPanel() {
   const [profile, setProfile] = useState({ full_name: '', photo_url: '', professional_bio: '', work_method: '', specialties: '' });
-  const [availability, setAvailability] = useState(defaultItems);
+  const [availability, setAvailability] = useState<AvailabilityFormItem[]>(() => buildEmptyAvailability());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [editingProfile, setEditingProfile] = useState(true);
   const [editingAvailability, setEditingAvailability] = useState(true);
@@ -124,7 +133,7 @@ export default function AdminPanel() {
 
     const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
       safeFetchJson<Record<string, unknown> | null>('/api/admin/profile'),
-      safeFetchJson<Array<typeof defaultItems[number]>>('/api/admin/availability'),
+      safeFetchJson<AvailabilityFormItem[]>('/api/admin/availability'),
       safeFetchJson<Appointment[]>('/api/admin/appointments'),
     ]);
 
@@ -147,8 +156,8 @@ export default function AdminPanel() {
     }
 
     if (availabilityRes.ok && Array.isArray(availabilityRes.data)) {
-      const merged = defaultItems.map((item) => {
-        const existing = availabilityRes.data?.find((row) => row.weekday === item.weekday);
+      const merged = buildEmptyAvailability().map((item) => {
+        const existing = availabilityRes.data?.find((row) => row.day_of_week === item.day_of_week);
         return existing ? { ...item, ...existing } : item;
       });
       setAvailability(merged);
@@ -338,9 +347,9 @@ export default function AdminPanel() {
         {editingAvailability ? (
           <>
             <div className="space-y-2">
-              {availability.map((item, i) => (
+            {availability.map((item, i) => (
                 <div key={item.day_of_week} className="grid grid-cols-5 gap-2 items-center">
-                  <span>{item.day_of_week}</span>
+                  <span>{getWeekdayLabel(item.day_of_week)}</span>
                   <input
                     type="checkbox"
                     className="availability-checkbox"
@@ -365,7 +374,7 @@ export default function AdminPanel() {
         ) : (
           <div className="space-y-1 text-sm text-gray-800">
             {enabledAvailability.length ? enabledAvailability.map((item) => (
-              <p key={item.day_of_week}><strong>{item.day_of_week}:</strong> {item.start_time} - {item.end_time}</p>
+              <p key={item.day_of_week}><strong>{getWeekdayLabel(item.day_of_week)}:</strong> {item.start_time} - {item.end_time}</p>
             )) : <p>Nenhum horário disponível selecionado.</p>}
           </div>
         )}
