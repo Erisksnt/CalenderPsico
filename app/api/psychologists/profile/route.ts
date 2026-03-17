@@ -30,8 +30,6 @@ const sanitizeSpecialties = (value: unknown): string[] => {
   return [];
 };
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('Authorization');
