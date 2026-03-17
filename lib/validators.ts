@@ -52,15 +52,20 @@ export const ProfileSchema = z.object({
 });
 
 export const AvailabilityItemSchema = z.object({
-  weekday: z.number().min(0).max(6),
-  enabled: z.boolean(),
+  day_of_week: z.enum(['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']),
+  is_blocked: z.boolean().default(false),
   start_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   end_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   session_duration: z.number().min(30).max(120),
 });
 
-export const AvailabilitySchema = z.object({
+export const AvailabilityBulkSchema = z.object({
   items: z.array(AvailabilityItemSchema).length(7),
+});
+
+export const AvailabilityCreateSchema = AvailabilityItemSchema.omit({
+  is_blocked: true,
+  session_duration: true,
 });
 
 export const BookAppointmentSchema = z.object({
@@ -73,7 +78,7 @@ export const BookAppointmentSchema = z.object({
 });
 
 export const UpdateAppointmentStatusSchema = z.object({
-  status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']),
+  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']),
 });
 
 /* legacy compatibility */
@@ -82,3 +87,4 @@ export const RegisterSchema = AdminRegisterSchema;
 export const PsychologistProfileSchema = ProfileSchema;
 export const CreateAppointmentSchema = BookAppointmentSchema;
 export const UpdateAppointmentSchema = UpdateAppointmentStatusSchema;
+export const AvailabilitySchema = AvailabilityCreateSchema;

@@ -9,10 +9,20 @@ generator client {
 }
 
 enum AppointmentStatus {
-  pending   @map("PENDING")
-  confirmed @map("CONFIRMED")
-  cancelled @map("CANCELLED")
-  completed @map("COMPLETED")
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum DayOfWeek {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
 }
 
 model User {
@@ -46,18 +56,18 @@ model Profile {
 }
 
 model Availability {
-  id               String   @id @default(cuid())
-  user_id          String
-  weekday          Int
-  enabled          Boolean  @default(true)
+  id               String    @id @default(cuid())
+  psychologist_id  String
+  day_of_week      DayOfWeek
   start_time       String
   end_time         String
-  session_duration Int
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  is_blocked       Boolean   @default(false)
+  session_duration Int       @default(50)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
 
-  @@unique([user_id, weekday])
-  @@index([user_id, weekday])
+  @@unique([psychologist_id, day_of_week])
+  @@index([psychologist_id, day_of_week])
   @@map("availability")
 }
 
@@ -69,7 +79,7 @@ model Appointment {
   mensagem      String?
   data          String
   hora          String
-  status        AppointmentStatus @default(pending)
+  status        AppointmentStatus @default(PENDING)
   created_at    DateTime          @default(now())
 
   @@unique([data, hora])
