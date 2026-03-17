@@ -1,6 +1,8 @@
 // app/api/psychologists/profile/route.ts
 // Rotas para consultar/editar os dados do perfil clínico do psicólogo autenticado
 
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/database';
 import { verifyToken } from '@/lib/auth';
