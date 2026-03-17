@@ -33,9 +33,9 @@ type Appointment = {
 
 const statusLabel: Record<Appointment['status'], string> = {
   pending: 'Aguardando confirmação',
-  confirmed: 'Pré-consulta confirmada',
+  confirmed: 'Ambientação confirmada',
   cancelled: 'Solicitação cancelada',
-  completed: 'Pré-consulta concluída',
+  completed: 'Ambientação concluída',
 };
 
 function formatApiError(payload: unknown, status: number) {
@@ -60,6 +60,7 @@ function formatApiError(payload: unknown, status: number) {
   return `Erro ${status}`;
 }
 
+
 async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
   try {
     const response = await fetch(url, init);
@@ -67,7 +68,11 @@ async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<{ ok: 
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
+
       const error = formatApiError(payload, response.status);
+
+      const error = (payload && typeof payload === 'object' && 'error' in payload) ? String((payload as { error: string }).error) : `Erro ${response.status}`;
+
       return { ok: false, status: response.status, data: payload, error };
     }
 
