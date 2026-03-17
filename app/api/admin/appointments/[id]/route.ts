@@ -13,7 +13,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   const updated = await prisma.appointment.update({
     where: { id: params.id },
-    data: { status: parsed.data.status },
+    data: { status: parsed.data.status as any },
   });
 
   return NextResponse.json(updated);

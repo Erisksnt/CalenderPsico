@@ -4,10 +4,18 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado'];
-const defaultItems = weekdays.map((_, weekday) => ({
-  weekday,
-  enabled: false,
+const weekdays = [
+  'SUNDAY',
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+];
+const defaultItems = weekdays.map((day_of_week) => ({
+  day_of_week,
+  is_blocked: true,
   start_time: '09:00',
   end_time: '18:00',
   session_duration: 50,
@@ -30,14 +38,14 @@ type Appointment = {
   mensagem?: string | null;
   data: string;
   hora: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 };
 
 const statusLabel: Record<Appointment['status'], string> = {
-  pending: 'Aguardando confirmação',
-  confirmed: 'Ambientação confirmada',
-  cancelled: 'Solicitação cancelada',
-  completed: 'Ambientação concluída',
+  PENDING: 'Aguardando confirmação',
+  CONFIRMED: 'Ambientação confirmada',
+  CANCELLED: 'Solicitação cancelada',
+  COMPLETED: 'Ambientação concluída',
 };
 
 function formatApiError(payload: unknown, status: number) {
@@ -201,7 +209,7 @@ export default function AdminPanel() {
     setMessage({ type: 'success', text: 'Disponibilidade salva com sucesso.' });
   }
 
-  async function updateStatus(id: string, status: 'confirmed' | 'cancelled') {
+  async function updateStatus(id: string, status: 'CONFIRMED' | 'CANCELLED') {
     const result = await safeFetchJson(`/api/admin/appointments/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
@@ -215,10 +223,10 @@ export default function AdminPanel() {
     await loadAll();
   }
 
-  const enabledAvailability = useMemo(() => availability.filter((item) => item.enabled), [availability]);
-  const pendingAppointments = useMemo(() => appointments.filter((a) => a.status === 'pending'), [appointments]);
-  const doneAppointments = useMemo(() => appointments.filter((a) => a.status === 'confirmed' || a.status === 'completed'), [appointments]);
-  const cancelledAppointments = useMemo(() => appointments.filter((a) => a.status === 'cancelled'), [appointments]);
+  const enabledAvailability = useMemo(() => availability.filter((item) => !item.is_blocked), [availability]);
+  const pendingAppointments = useMemo(() => appointments.filter((a) => a.status === 'PENDING'), [appointments]);
+  const doneAppointments = useMemo(() => appointments.filter((a) => a.status === 'CONFIRMED' || a.status === 'COMPLETED'), [appointments]);
+  const cancelledAppointments = useMemo(() => appointments.filter((a) => a.status === 'CANCELLED'), [appointments]);
 
   return (
     <div className="space-y-6 pb-8">
@@ -327,14 +335,14 @@ export default function AdminPanel() {
           <>
             <div className="space-y-2">
               {availability.map((item, i) => (
-                <div key={item.weekday} className="grid grid-cols-5 gap-2 items-center">
-                  <span>{weekdays[item.weekday]}</span>
+                <div key={item.day_of_week} className="grid grid-cols-5 gap-2 items-center">
+                  <span>{item.day_of_week}</span>
                   <input
                     type="checkbox"
                     className="availability-checkbox"
-                    checked={item.enabled}
+                    checked={!item.is_blocked}
                     onChange={(e) => {
-                      const next = [...availability]; next[i].enabled = e.target.checked; setAvailability(next);
+                      const next = [...availability]; next[i].is_blocked = !e.target.checked; setAvailability(next);
                     }}
                   />
                   <input className="border p-1 rounded" type="time" value={item.start_time} onChange={(e) => { const next = [...availability]; next[i].start_time = e.target.value; setAvailability(next); }} />
@@ -353,7 +361,7 @@ export default function AdminPanel() {
         ) : (
           <div className="space-y-1 text-sm text-gray-800">
             {enabledAvailability.length ? enabledAvailability.map((item) => (
-              <p key={item.weekday}><strong>{weekdays[item.weekday]}:</strong> {item.start_time} - {item.end_time}</p>
+              <p key={item.day_of_week}><strong>{item.day_of_week}:</strong> {item.start_time} - {item.end_time}</p>
             )) : <p>Nenhum horário disponível selecionado.</p>}
           </div>
         )}
@@ -374,8 +382,8 @@ export default function AdminPanel() {
               <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
               <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
               <div className="flex gap-2">
-                <button className="inline-flex items-center justify-center rounded-full bg-green-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-green-700" onClick={() => updateStatus(a.id, 'confirmed')}>Confirmar</button>
-                <button className="inline-flex items-center justify-center rounded-full bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700" onClick={() => updateStatus(a.id, 'cancelled')}>Cancelar</button>
+                <button className="inline-flex items-center justify-center rounded-full bg-green-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-green-700" onClick={() => updateStatus(a.id, 'CONFIRMED')}>Confirmar</button>
+                <button className="inline-flex items-center justify-center rounded-full bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700" onClick={() => updateStatus(a.id, 'CANCELLED')}>Cancelar</button>
               </div>
             </div>
           ))}
