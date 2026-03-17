@@ -138,9 +138,13 @@ export default function AdminPanel() {
       if (p.full_name || p.professional_bio) setEditingProfile(false);
     }
 
-    if (availabilityRes.ok && Array.isArray(availabilityRes.data) && availabilityRes.data.length) {
-      setAvailability(availabilityRes.data);
-      setEditingAvailability(false);
+    if (availabilityRes.ok && Array.isArray(availabilityRes.data)) {
+      const merged = defaultItems.map((item) => {
+        const existing = availabilityRes.data?.find((row) => row.weekday === item.weekday);
+        return existing ? { ...item, ...existing } : item;
+      });
+      setAvailability(merged);
+      if (availabilityRes.data.length) setEditingAvailability(false);
     }
 
     if (appointmentsRes.ok && Array.isArray(appointmentsRes.data)) {
