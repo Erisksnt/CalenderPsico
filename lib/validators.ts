@@ -51,8 +51,18 @@ export const ProfileSchema = z.object({
   specialties: z.array(z.string().min(2)).default([]),
 });
 
+const DAY_OF_WEEK_VALUES = [
+  'SUNDAY',
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+] as const;
+
 export const AvailabilityItemSchema = z.object({
-  day_of_week: z.enum(['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']),
+  day_of_week: z.enum(DAY_OF_WEEK_VALUES),
   is_blocked: z.boolean().default(false),
   start_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   end_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
@@ -60,7 +70,29 @@ export const AvailabilityItemSchema = z.object({
 });
 
 export const AvailabilityBulkSchema = z.object({
-  items: z.array(AvailabilityItemSchema).length(7),
+  items: z
+    .array(AvailabilityItemSchema)
+    .length(DAY_OF_WEEK_VALUES.length)
+    .superRefine((items, ctx) => {
+      const seen = new Set<string>();
+      items.forEach((item, index) => {
+        if (seen.has(item.day_of_week)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['items', index, 'day_of_week'],
+            message: 'Dia da semana duplicado',
+          });
+        }
+        seen.add(item.day_of_week);
+      });
+      if (seen.size !== DAY_OF_WEEK_VALUES.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['items'],
+          message: 'Cada dia da semana deve aparecer apenas uma vez',
+        });
+      }
+    }),
 });
 
 export const AvailabilityCreateSchema = AvailabilityItemSchema.omit({

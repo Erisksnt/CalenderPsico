@@ -1,9 +1,11 @@
+// app/api/availability/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { AvailabilitySchema } from '@/lib/validators';
 import prisma from '@/lib/database';
 import { verifyJWT, getTokenFromHeader } from '@/lib/auth';
 
-// helper auth
+// helper auth (reutilizável)
 async function authenticate(req: NextRequest) {
   const token = getTokenFromHeader(req.headers.get('authorization') || '');
 
@@ -20,7 +22,7 @@ async function authenticate(req: NextRequest) {
   return { decoded };
 }
 
-// GET
+// GET /api/availability
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -38,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     const where: {
       psychologist_id: string;
-      day_of_week?: string;
+      day_of_week?: any;
       is_blocked?: boolean;
     } = {
       psychologist_id: psychologistId,
@@ -74,7 +76,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST
+// POST /api/availability
 export async function POST(req: NextRequest) {
   try {
     const auth = await authenticate(req);
@@ -116,8 +118,8 @@ export async function POST(req: NextRequest) {
 
     const { day_of_week, start_time, end_time } = parsed.data;
 
-    // 🔥 validação real de conflito (intervalo)
-    const conflictingAvailability = await prisma.availability.findFirst({
+    // 🔥 verificação real de conflito (intervalo)
+    const conflict = await prisma.availability.findFirst({
       where: {
         psychologist_id: psychologist.id,
         day_of_week,
@@ -128,7 +130,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (conflictingAvailability) {
+    if (conflict) {
       return NextResponse.json(
         {
           success: false,
@@ -144,6 +146,7 @@ export async function POST(req: NextRequest) {
         day_of_week,
         start_time,
         end_time,
+        is_blocked: false,
       },
     });
 

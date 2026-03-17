@@ -5,26 +5,25 @@ import { AvailabilityBulkSchema } from '@/lib/validators';
 
 export const dynamic = 'force-dynamic';
 
+async function findProfile(adminId: string) {
+  return prisma.profile.findUnique({ where: { user_id: adminId } });
+}
+
 export async function GET(request: Request) {
   try {
-    const db = prisma as any;
     const admin = await getAdminFromRequest(request);
-    if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    if (!admin) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    const profile = await findProfile(admin.id);
+    if (!profile) {
+      return NextResponse.json({ error: 'Perfil do psicólogo não encontrado' }, { status: 404 });
+    }
 
     const rows = await prisma.availability.findMany({
-      where: { user_id: admin.id },
-      orderBy: { weekday: 'asc' },
-
-
-
-    const psychologist = await db.psychologist.findUnique({ where: { user_id: admin.id } });
-    if (!psychologist) return NextResponse.json({ error: 'Psicólogo não encontrado' }, { status: 404 });
-
-    const rows = await db.availability.findMany({
-      where: { psychologist_id: psychologist.id },
+      where: { psychologist_id: profile.id },
       orderBy: { day_of_week: 'asc' },
-
-
     });
 
     return NextResponse.json(rows);
@@ -36,66 +35,47 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const db = prisma as any;
     const admin = await getAdminFromRequest(request);
-    if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    if (!admin) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
 
-    const psychologist = await db.psychologist.findUnique({ where: { user_id: admin.id } });
-    if (!psychologist) return NextResponse.json({ error: 'Psicólogo não encontrado' }, { status: 404 });
+    const profile = await findProfile(admin.id);
+    if (!profile) {
+      return NextResponse.json({ error: 'Perfil do psicólogo não encontrado' }, { status: 404 });
+    }
 
     const body = await request.json();
     const parsed = AvailabilityBulkSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const itemsByDay = new Map(parsed.data.items.map((item) => [item.day_of_week, item]));
+    const dedupedItems = Array.from(itemsByDay.values());
 
     await prisma.$transaction(async (tx) => {
-      await tx.availability.deleteMany({ where: { user_id: { not: admin.id } } });
-
-      for (const item of parsed.data.items) {
-        await tx.availability.upsert({
-          where: { user_id_weekday: { user_id: admin.id, weekday: item.weekday } },
-          create: { user_id: admin.id, ...item },
-          update: item,
-        });
-      }
+      await tx.availability.deleteMany({ where: { psychologist_id: profile.id } });
+      await Promise.all(
+        dedupedItems.map((item) =>
+          tx.availability.create({
+            data: {
+              psychologist_id: profile.id,
+              day_of_week: item.day_of_week,
+              start_time: item.start_time,
+              end_time: item.end_time,
+              is_blocked: item.is_blocked,
+              session_duration: item.session_duration,
+            },
+          })
+        )
+      );
     });
 
     const rows = await prisma.availability.findMany({
-      where: { user_id: admin.id },
-      orderBy: { weekday: 'asc' },
-    });
-
-    await db.$transaction(
-      parsed.data.items.map((item) =>
-        db.availability.upsert({
-          where: {
-            psychologist_id_day_of_week: {
-              psychologist_id: psychologist.id,
-              day_of_week: item.day_of_week,
-            },
-          },
-          create: {
-            psychologist_id: psychologist.id,
-            day_of_week: item.day_of_week,
-            start_time: item.start_time,
-            end_time: item.end_time,
-            is_blocked: item.is_blocked,
-            session_duration: item.session_duration,
-          },
-          update: {
-            start_time: item.start_time,
-            end_time: item.end_time,
-            is_blocked: item.is_blocked,
-            session_duration: item.session_duration,
-          },
-        })
-      )
-    );
-
-    const rows = await db.availability.findMany({
       where: { psychologist_id: psychologist.id },
       orderBy: { day_of_week: 'asc' },
     });
-
 
     return NextResponse.json(rows);
   } catch (error) {
