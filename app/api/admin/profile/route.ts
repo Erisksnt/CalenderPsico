@@ -3,6 +3,8 @@ import prisma from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
 import { ProfileSchema } from '@/lib/validators';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const admin = await getAdminFromRequest(request);

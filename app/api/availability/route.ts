@@ -1,32 +1,46 @@
-// app/api/availability/route.ts
-// GET: Listar disponibilidades
-// POST: Criar nova disponibilidade
-
 import { NextRequest, NextResponse } from 'next/server';
 import { AvailabilitySchema } from '@/lib/validators';
 import prisma from '@/lib/database';
 import { verifyJWT, getTokenFromHeader } from '@/lib/auth';
 
-// GET /api/availability?psychologist_id=xxx&day_of_week=MONDAY
+// helper auth
+async function authenticate(req: NextRequest) {
+  const token = getTokenFromHeader(req.headers.get('authorization') || '');
+
+  if (!token) {
+    return { error: 'Não autorizado', status: 401 };
+  }
+
+  const decoded = verifyJWT(token);
+
+  if (!decoded || decoded.role !== 'PSYCHOLOGIST') {
+    return { error: 'Acesso negado', status: 403 };
+  }
+
+  return { decoded };
+}
+
+// GET
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+
     const psychologistId = searchParams.get('psychologist_id');
     const dayOfWeek = searchParams.get('day_of_week');
     const excludeBlocked = searchParams.get('exclude_blocked') === 'true';
 
     if (!psychologistId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'psychologist_id é obrigatório',
-        },
+        { success: false, error: 'psychologist_id é obrigatório' },
         { status: 400 }
       );
     }
 
-    // Query de disponibilidades
-    const where: any = {
+    const where: {
+      psychologist_id: string;
+      day_of_week?: string;
+      is_blocked?: boolean;
+    } = {
       psychologist_id: psychologistId,
     };
 
@@ -40,111 +54,90 @@ export async function GET(req: NextRequest) {
 
     const availabilities = await prisma.availability.findMany({
       where,
-      orderBy: [{ day_of_week: 'asc' }, { start_time: 'asc' }],
+      orderBy: [
+        { day_of_week: 'asc' },
+        { start_time: 'asc' },
+      ],
     });
 
     return NextResponse.json(
-      {
-        success: true,
-        data: availabilities,
-      },
+      { success: true, data: availabilities },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erro ao listar disponibilidades:', error);
+
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Erro interno do servidor',
-      },
+      { success: false, error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }
 }
 
-// POST /api/availability
+// POST
 export async function POST(req: NextRequest) {
   try {
-    // Verifica autenticação
-    const token = getTokenFromHeader(req.headers.get('authorization') || '');
-    if (!token) {
+    const auth = await authenticate(req);
+
+    if ('error' in auth) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Não autorizado',
-        },
-        { status: 401 }
+        { success: false, error: auth.error },
+        { status: auth.status }
       );
     }
 
-    const decoded = verifyJWT(token);
-    if (!decoded || decoded.role !== 'PSYCHOLOGIST') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Acesso negado. Apenas psicólogos podem criar disponibilidades.',
-        },
-        { status: 403 }
-      );
-    }
+    const { decoded } = auth;
 
-    // Obtém psicólogo associado ao usuário
     const psychologist = await prisma.psychologist.findUnique({
       where: { user_id: decoded.userId },
     });
 
     if (!psychologist) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Psicólogo não encontrado',
-        },
+        { success: false, error: 'Psicólogo não encontrado' },
         { status: 404 }
       );
     }
 
     const body = await req.json();
 
-    // Validação
-    const validation = AvailabilitySchema.safeParse(body);
-    if (!validation.success) {
-      const errors = validation.error.errors.map((err) => ({
-        field: err.path.join('.'),
-        message: err.message,
-      }));
+    const parsed = AvailabilitySchema.safeParse(body);
+
+    if (!parsed.success) {
       return NextResponse.json(
         {
           success: false,
           error: 'Erro de validação',
-          data: { errors },
+          details: parsed.error.format(),
         },
         { status: 400 }
       );
     }
 
-    const { day_of_week, start_time, end_time } = validation.data;
+    const { day_of_week, start_time, end_time } = parsed.data;
 
-    // Verifica se já existe uma disponibilidade no mesmo horário e dia
-    const existingAvailability = await prisma.availability.findFirst({
+    // 🔥 validação real de conflito (intervalo)
+    const conflictingAvailability = await prisma.availability.findFirst({
       where: {
         psychologist_id: psychologist.id,
         day_of_week,
-        start_time,
-        end_time,
+        AND: [
+          { start_time: { lt: end_time } },
+          { end_time: { gt: start_time } },
+        ],
       },
     });
 
-    if (existingAvailability) {
+    if (conflictingAvailability) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Já existe uma disponibilidade para este horário e dia',
+          error: 'Conflito de horário com outra disponibilidade',
         },
         { status: 409 }
       );
     }
 
-    // Cria a disponibilidade
     const availability = await prisma.availability.create({
       data: {
         psychologist_id: psychologist.id,
@@ -162,13 +155,11 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erro ao criar disponibilidade:', error);
+
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Erro interno do servidor',
-      },
+      { success: false, error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }
