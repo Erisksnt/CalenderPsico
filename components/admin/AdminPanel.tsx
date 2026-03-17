@@ -1,3 +1,5 @@
+
+
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -61,24 +63,41 @@ function formatApiError(payload: unknown, status: number) {
 }
 
 
-async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
+async function safeFetchJson<T>(
+  url: string,
+  init?: RequestInit
+): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
   try {
     const response = await fetch(url, init);
     const text = await response.text();
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
+      const errorData =
+        payload && typeof payload === 'object' && 'error' in payload
+          ? String((payload as { error: string }).error)
+          : `Erro ${response.status}`;
 
-      const error = formatApiError(payload, response.status);
-
-      const error = (payload && typeof payload === 'object' && 'error' in payload) ? String((payload as { error: string }).error) : `Erro ${response.status}`;
-
-      return { ok: false, status: response.status, data: payload, error };
+      return {
+        ok: false,
+        status: response.status,
+        data: payload,
+        error: errorData,
+      };
     }
 
-    return { ok: true, status: response.status, data: payload };
+    return {
+      ok: true,
+      status: response.status,
+      data: payload,
+    };
   } catch (error) {
-    return { ok: false, status: 0, data: null, error: error instanceof Error ? error.message : 'Erro inesperado' };
+    return {
+      ok: false,
+      status: 0,
+      data: null,
+      error: error instanceof Error ? error.message : 'Erro inesperado',
+    };
   }
 }
 
