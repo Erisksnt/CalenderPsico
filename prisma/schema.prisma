@@ -9,10 +9,10 @@ generator client {
 }
 
 enum AppointmentStatus {
-  pending
-  confirmed
-  cancelled
-  completed
+  pending   @map("PENDING")
+  confirmed @map("CONFIRMED")
+  cancelled @map("CANCELLED")
+  completed @map("COMPLETED")
 }
 
 model User {
