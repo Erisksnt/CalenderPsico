@@ -15,12 +15,15 @@ export async function GET(request: Request) {
       where: { user_id: admin.id },
       orderBy: { weekday: 'asc' },
 
+
+
     const psychologist = await db.psychologist.findUnique({ where: { user_id: admin.id } });
     if (!psychologist) return NextResponse.json({ error: 'Psicólogo não encontrado' }, { status: 404 });
 
     const rows = await db.availability.findMany({
       where: { psychologist_id: psychologist.id },
       orderBy: { day_of_week: 'asc' },
+
 
     });
 
@@ -92,6 +95,7 @@ export async function PUT(request: Request) {
       where: { psychologist_id: psychologist.id },
       orderBy: { day_of_week: 'asc' },
     });
+
 
     return NextResponse.json(rows);
   } catch (error) {

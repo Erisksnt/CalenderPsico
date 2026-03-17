@@ -3,6 +3,8 @@ import prisma from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
 import { UpdateAppointmentStatusSchema } from '@/lib/validators';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const admin = await getAdminFromRequest(request);
   if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });

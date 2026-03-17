@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 function isPast(date: string, time: string) {
   const appointmentDate = new Date(`${date}T${time}:00`);
   return appointmentDate.getTime() <= Date.now();
