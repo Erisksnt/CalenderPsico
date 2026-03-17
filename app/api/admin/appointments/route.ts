@@ -8,23 +8,30 @@ function isPast(date: string, time: string) {
 }
 
 export async function GET(request: Request) {
-  const admin = await getAdminFromRequest(request);
-  if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  try {
+    const admin = await getAdminFromRequest(request);
+    if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-  const confirmedAppointments = await prisma.appointment.findMany({
-    where: { status: 'confirmed' },
-    select: { id: true, data: true, hora: true },
-  });
-
-  const pastConfirmedIds = confirmedAppointments.filter((a: { id: string; data: string; hora: string }) => isPast(a.data, a.hora)).map((a: { id: string }) => a.id);
-
-  if (pastConfirmedIds.length) {
-    await prisma.appointment.updateMany({
-      where: { id: { in: pastConfirmedIds } },
-      data: { status: 'completed' },
+    const confirmedAppointments = await prisma.appointment.findMany({
+      where: { status: 'confirmed' },
+      select: { id: true, data: true, hora: true },
     });
-  }
 
-  const appointments = await prisma.appointment.findMany({ orderBy: [{ data: 'asc' }, { hora: 'asc' }] });
-  return NextResponse.json(appointments);
+    const pastConfirmedIds = confirmedAppointments
+      .filter((a: { id: string; data: string; hora: string }) => isPast(a.data, a.hora))
+      .map((a: { id: string }) => a.id);
+
+    if (pastConfirmedIds.length) {
+      await prisma.appointment.updateMany({
+        where: { id: { in: pastConfirmedIds } },
+        data: { status: 'completed' },
+      });
+    }
+
+    const appointments = await prisma.appointment.findMany({ orderBy: [{ data: 'asc' }, { hora: 'asc' }] });
+    return NextResponse.json(appointments);
+  } catch (error) {
+    console.error('Erro ao carregar agendamentos do admin:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
+  }
 }

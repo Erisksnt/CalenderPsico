@@ -38,6 +38,23 @@ const statusLabel: Record<Appointment['status'], string> = {
   completed: 'Pré-consulta concluída',
 };
 
+async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
+  try {
+    const response = await fetch(url, init);
+    const text = await response.text();
+    const payload = text ? JSON.parse(text) : null;
+
+    if (!response.ok) {
+      const error = (payload && typeof payload === 'object' && 'error' in payload) ? String((payload as { error: string }).error) : `Erro ${response.status}`;
+      return { ok: false, status: response.status, data: payload, error };
+    }
+
+    return { ok: true, status: response.status, data: payload };
+  } catch (error) {
+    return { ok: false, status: 0, data: null, error: error instanceof Error ? error.message : 'Erro inesperado' };
+  }
+}
+
 export default function AdminPanel() {
   const [profile, setProfile] = useState({ full_name: '', photo_url: '', professional_bio: '', work_method: '', specialties: '' });
   const [availability, setAvailability] = useState(defaultItems);
@@ -46,27 +63,52 @@ export default function AdminPanel() {
   const [editingAvailability, setEditingAvailability] = useState(true);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   async function loadAll() {
-    const [p, a, ap] = await Promise.all([
-      fetch('/api/admin/profile').then((r) => r.json()),
-      fetch('/api/admin/availability').then((r) => r.json()),
-      fetch('/api/admin/appointments').then((r) => r.json()),
+    setMessage(null);
+
+    const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
+      safeFetchJson<Record<string, unknown> | null>('/api/admin/profile'),
+      safeFetchJson<Array<typeof defaultItems[number]>>('/api/admin/availability'),
+      safeFetchJson<Appointment[]>('/api/admin/appointments'),
     ]);
 
-    if (p) {
-      setProfile({ ...p, photo_url: p.photo_url || '', specialties: (p.specialties || []).join(', ') });
+    if (profileRes.ok && profileRes.data) {
+      const p = profileRes.data as {
+        full_name?: string;
+        photo_url?: string | null;
+        professional_bio?: string;
+        work_method?: string;
+        specialties?: string[];
+      };
+      setProfile({
+        full_name: p.full_name || '',
+        photo_url: p.photo_url || '',
+        professional_bio: p.professional_bio || '',
+        work_method: p.work_method || '',
+        specialties: (p.specialties || []).join(', '),
+      });
       if (p.full_name || p.professional_bio) setEditingProfile(false);
     }
-    if (Array.isArray(a) && a.length) {
-      setAvailability(a);
+
+    if (availabilityRes.ok && Array.isArray(availabilityRes.data) && availabilityRes.data.length) {
+      setAvailability(availabilityRes.data);
       setEditingAvailability(false);
     }
-    if (Array.isArray(ap)) setAppointments(ap);
+
+    if (appointmentsRes.ok && Array.isArray(appointmentsRes.data)) {
+      setAppointments(appointmentsRes.data);
+    }
+
+    const errors = [profileRes, availabilityRes, appointmentsRes].filter((result) => !result.ok).map((result) => result.error);
+    if (errors.length) {
+      setMessage({ type: 'error', text: `Alguns dados não puderam ser carregados: ${errors.join(' | ')}` });
+    }
   }
 
   useEffect(() => {
-    loadAll();
+    void loadAll();
   }, []);
 
   useEffect(() => {
@@ -81,29 +123,49 @@ export default function AdminPanel() {
   async function saveProfile() {
     const specialties = profile.specialties.split(',').map((s) => s.trim()).filter(Boolean);
     const photoUrl = photoFile ? await fileToDataUrl(photoFile) : profile.photo_url;
-    await fetch('/api/admin/profile', {
+    const result = await safeFetchJson('/api/admin/profile', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...profile, specialties, photo_url: photoUrl }),
     });
+
+    if (!result.ok) {
+      setMessage({ type: 'error', text: `Não foi possível salvar o perfil: ${result.error}` });
+      return;
+    }
+
     await loadAll();
     setEditingProfile(false);
     setPhotoFile(null);
+    setMessage({ type: 'success', text: 'Perfil salvo com sucesso.' });
   }
 
   async function saveAvailability() {
-    await fetch('/api/admin/availability', {
+    const result = await safeFetchJson('/api/admin/availability', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items: availability.map((item) => ({ ...item, session_duration: Number(item.session_duration) })) }),
     });
+
+    if (!result.ok) {
+      setMessage({ type: 'error', text: `Não foi possível salvar a disponibilidade: ${result.error}` });
+      return;
+    }
+
     await loadAll();
     setEditingAvailability(false);
+    setMessage({ type: 'success', text: 'Disponibilidade salva com sucesso.' });
   }
 
   async function updateStatus(id: string, status: 'confirmed' | 'cancelled') {
-    await fetch(`/api/admin/appointments/${id}`, {
+    const result = await safeFetchJson(`/api/admin/appointments/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
+
+    if (!result.ok) {
+      setMessage({ type: 'error', text: `Não foi possível atualizar status: ${result.error}` });
+      return;
+    }
+
     await loadAll();
   }
 
@@ -114,6 +176,12 @@ export default function AdminPanel() {
 
   return (
     <div className="space-y-6 pb-8">
+      {message && (
+        <div className={`rounded border px-4 py-3 text-sm ${message.type === 'success' ? 'border-green-300 bg-green-50 text-green-700' : 'border-red-300 bg-red-50 text-red-700'}`}>
+          {message.text}
+        </div>
+      )}
+
       <section className="bg-white border rounded p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-xl text-[#101010]">Perfil do Psicólogo</h2>
@@ -148,11 +216,11 @@ export default function AdminPanel() {
                     accept="image/*"
                     className="hidden"
                     onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      setPhotoFile(file || null);
+                      const file = event.target.files?.[0] || null;
+                      setPhotoFile(file);
                     }}
                   />
-                  Selecionar imagem
+                  {photoFile ? 'Trocar imagem' : 'Selecionar imagem'}
                 </label>
                 {photoFile && (
                   <span className="text-sm text-[#4d4d4d]">{photoFile.name}</span>
@@ -174,6 +242,7 @@ export default function AdminPanel() {
           <div className="border rounded-xl p-4 bg-gray-50 space-y-3">
             <div className="flex gap-4 items-start">
               {profile.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.photo_url} alt={profile.full_name || 'Foto profissional'} className="w-20 h-20 object-cover rounded-full border" />
               ) : (
                 <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">Foto</div>
@@ -258,20 +327,9 @@ export default function AdminPanel() {
               <p className="text-sm">Horário solicitado: {a.hora}</p>
               <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
               <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  className="px-3 py-1 rounded-full bg-[#C2183A] text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#a0162f]"
-                  onClick={() => updateStatus(a.id, 'confirmed')}
-                >
-                  Confirmar pré-consulta
-                </button>
-                <button
-                  className="px-3 py-1 rounded-full border border-[#C2183A] text-xs font-semibold uppercase tracking-wide text-[#C2183A] transition hover:bg-[#ffe5e7]"
-                  onClick={() => updateStatus(a.id, 'cancelled')}
-                >
-                  Cancelar solicitação
-                </button>
+              <div className="flex gap-2">
+                <button className="inline-flex items-center justify-center rounded-full bg-green-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-green-700" onClick={() => updateStatus(a.id, 'confirmed')}>Confirmar</button>
+                <button className="inline-flex items-center justify-center rounded-full bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700" onClick={() => updateStatus(a.id, 'cancelled')}>Cancelar</button>
               </div>
             </div>
           ))}
@@ -279,32 +337,24 @@ export default function AdminPanel() {
         </div>
 
         <div className="space-y-3">
-          <h3 className="font-semibold text-lg">Pré-consultas confirmadas / realizadas</h3>
+          <h3 className="font-semibold text-lg">Solicitações concluídas</h3>
           {doneAppointments.map((a) => (
-            <div key={a.id} className="border rounded p-3 space-y-1">
+            <div key={a.id} className="border rounded p-3 space-y-1 bg-green-50 border-green-200">
               <p className="font-semibold">{a.nome_paciente}</p>
-              <p className="text-sm">Email: {a.email}</p>
-              <p className="text-sm">Telefone: {a.telefone}</p>
-              <p className="text-sm">Data solicitada: {a.data}</p>
-              <p className="text-sm">Horário solicitado: {a.hora}</p>
-              <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
-              <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
+              <p className="text-sm">Data: {a.data} às {a.hora}</p>
+              <p className="text-sm">Status: {statusLabel[a.status]}</p>
             </div>
           ))}
-          {doneAppointments.length === 0 && <p className="text-sm text-gray-500">Nenhuma pré-consulta confirmada ou realizada.</p>}
+          {doneAppointments.length === 0 && <p className="text-sm text-gray-500">Nenhuma solicitação concluída.</p>}
         </div>
 
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">Solicitações canceladas</h3>
           {cancelledAppointments.map((a) => (
-            <div key={a.id} className="border rounded p-3 space-y-1">
+            <div key={a.id} className="border rounded p-3 space-y-1 bg-red-50 border-red-200">
               <p className="font-semibold">{a.nome_paciente}</p>
-              <p className="text-sm">Email: {a.email}</p>
-              <p className="text-sm">Telefone: {a.telefone}</p>
-              <p className="text-sm">Data solicitada: {a.data}</p>
-              <p className="text-sm">Horário solicitado: {a.hora}</p>
-              <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
-              <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
+              <p className="text-sm">Data: {a.data} às {a.hora}</p>
+              <p className="text-sm">Status: {statusLabel[a.status]}</p>
             </div>
           ))}
           {cancelledAppointments.length === 0 && <p className="text-sm text-gray-500">Nenhuma solicitação cancelada.</p>}
