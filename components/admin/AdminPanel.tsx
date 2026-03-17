@@ -33,10 +33,33 @@ type Appointment = {
 
 const statusLabel: Record<Appointment['status'], string> = {
   pending: 'Aguardando confirmação',
-  confirmed: 'Pré-consulta confirmada',
+  confirmed: 'Ambientação confirmada',
   cancelled: 'Solicitação cancelada',
-  completed: 'Pré-consulta concluída',
+  completed: 'Ambientação concluída',
 };
+
+function formatApiError(payload: unknown, status: number) {
+  if (payload && typeof payload === 'object' && 'error' in payload) {
+    const err = (payload as { error: unknown }).error;
+
+    if (typeof err === 'string') return err;
+
+    if (err && typeof err === 'object' && 'fieldErrors' in err) {
+      const fields = Object.values((err as { fieldErrors?: Record<string, string[]> }).fieldErrors || {}).flat();
+      if (fields.length) return fields.join(' | ');
+    }
+
+    if (err && typeof err === 'object' && 'formErrors' in err) {
+      const formErrors = (err as { formErrors?: string[] }).formErrors || [];
+      if (formErrors.length) return formErrors.join(' | ');
+    }
+
+    return JSON.stringify(err);
+  }
+
+  return `Erro ${status}`;
+}
+
 
 async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
   try {
@@ -45,7 +68,11 @@ async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<{ ok: 
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
+
+      const error = formatApiError(payload, response.status);
+
       const error = (payload && typeof payload === 'object' && 'error' in payload) ? String((payload as { error: string }).error) : `Erro ${response.status}`;
+
       return { ok: false, status: response.status, data: payload, error };
     }
 
