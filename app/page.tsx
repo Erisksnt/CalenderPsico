@@ -1,26 +1,11 @@
 import Link from 'next/link';
 import prisma from '@/lib/database';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-
 async function loadProfile() {
   try {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    let profile = null;
-
-    if (adminEmail) {
-      const admin = await prisma.user.findUnique({
-        where: { email: adminEmail },
-        include: { profile: true },
-      });
-
-      profile = admin?.profile ?? null;
-    } else {
-      const firstProfile = await prisma.profile.findFirst({
-        orderBy: { created_at: 'asc' },
-      });
-      profile = firstProfile;
-    }
+    const profile = await prisma.profile.findFirst({
+      orderBy: { updated_at: 'desc' },
+    });
 
     return profile;
   } catch {
