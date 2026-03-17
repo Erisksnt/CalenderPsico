@@ -68,11 +68,7 @@ async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<{ ok: 
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
-
       const error = formatApiError(payload, response.status);
-
-      const error = (payload && typeof payload === 'object' && 'error' in payload) ? String((payload as { error: string }).error) : `Erro ${response.status}`;
-
       return { ok: false, status: response.status, data: payload, error };
     }
 
