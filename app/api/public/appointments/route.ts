@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         mensagem,
         data,
         hora,
-        status: 'pending',
+        status: 'PENDING' as any,
       },
     });
 

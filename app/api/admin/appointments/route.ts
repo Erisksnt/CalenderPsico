@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const confirmedAppointments = await prisma.appointment.findMany({
-      where: { status: 'confirmed' },
+      where: { status: 'CONFIRMED' as any },
       select: { id: true, data: true, hora: true },
     });
 
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     if (pastConfirmedIds.length) {
       await prisma.appointment.updateMany({
         where: { id: { in: pastConfirmedIds } },
-        data: { status: 'completed' },
+        data: { status: 'COMPLETED' as any },
       });
     }
 
