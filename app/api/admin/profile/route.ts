@@ -1,18 +1,23 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/database';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
+import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { ProfileSchema } from '@/lib/validators';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
+    await ensureDefaultAdmin();
     const admin = await getAdminFromRequest(request);
     if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
     const profile = await prisma.profile.findUnique({ where: { user_id: admin.id } });
     return NextResponse.json(profile);
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao carregar perfil do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
@@ -20,6 +25,7 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    await ensureDefaultAdmin();
     const admin = await getAdminFromRequest(request);
     if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
@@ -35,6 +41,9 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(profile);
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao salvar perfil do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
