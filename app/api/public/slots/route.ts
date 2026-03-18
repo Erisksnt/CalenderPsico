@@ -26,6 +26,7 @@ export async function GET(request: Request) {
     const [slots, enabledWeekdays] = await Promise.all([getAvailableSlots(date), getEnabledWeekdays()]);
     return NextResponse.json({ date, slots, enabledWeekdays });
   } catch (error) {
+
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
     }

@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
+
+import prisma from '@/lib/database';
+
 import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { BookAppointmentSchema } from '@/lib/validators';
