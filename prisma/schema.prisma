@@ -8,6 +8,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum UserRole {
+  ADMIN
+  PSYCHOLOGIST
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED
@@ -26,16 +31,19 @@ enum DayOfWeek {
 }
 
 model User {
-  id            String @id @default(uuid())
-  email         String @unique
+  id            String   @id @default(uuid())
+  email         String   @unique
   password_hash String
-  role          String
+  role                      UserRole  @default(ADMIN)
+  reset_password_token      String?   @unique
+  reset_password_expires_at DateTime?
+  created_at                DateTime  @default(now())
+  updated_at    DateTime @updatedAt
 
   profile      Profile?
   psychologist Psychologist?
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  @@map("users")
 }
 
 model Profile {
@@ -51,16 +59,16 @@ model Profile {
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@map("profile")
+  @@map("profiles")
 }
 
 model Psychologist {
   id         String   @id @default(cuid())
   user_id    String   @unique
   created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
+  user           User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
   availabilities Availability[]
   appointments   Appointment[]
 
@@ -73,8 +81,8 @@ model Availability {
   day_of_week      DayOfWeek
   start_time       String
   end_time         String
-  is_blocked       Boolean   @default(false)
   session_duration Int       @default(50)
+  is_blocked       Boolean   @default(false)
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
 
@@ -82,7 +90,7 @@ model Availability {
 
   @@unique([psychologist_id, day_of_week])
   @@index([psychologist_id, day_of_week])
-  @@map("availability")
+  @@map("availabilities")
 }
 
 model Appointment {
@@ -96,10 +104,11 @@ model Appointment {
   hora            String
   status          AppointmentStatus @default(PENDING)
   created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
 
   psychologist Psychologist @relation(fields: [psychologist_id], references: [id], onDelete: Cascade)
 
-  @@unique([data, hora])
-  @@index([status, data])
+  @@unique([psychologist_id, data, hora])
+  @@index([psychologist_id, status, data])
   @@map("appointments")
 }
