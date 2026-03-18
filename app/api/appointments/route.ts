@@ -1,18 +1,11 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
-import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
-import { getAuthenticatedUser } from '@/lib/auth';
-import { BookAppointmentSchema } from '@/lib/validators';
-import { getAvailableSlots } from '@/lib/scheduling';
-
 function getTodayISO() {
   const now = new Date();
   const tzOffset = now.getTimezoneOffset() * 60_000;
   return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
 }
-
 
 import prisma from '@/lib/database';
 
@@ -26,7 +19,6 @@ function getTodayISO() {
   const tzOffset = now.getTimezoneOffset() * 60_000;
   return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
 }
-
 
 export async function GET(req: NextRequest) {
   try {
@@ -76,11 +68,6 @@ export async function POST(req: NextRequest) {
     if (!psychologist) {
       return NextResponse.json({ success: false, error: 'Psicólogo não encontrado' }, { status: 404 });
     }
-
-
-    const { nome, email, telefone, mensagem, data, hora } = parsed.data;
-
-
 
     const { nome, email, telefone, mensagem, data, hora } = parsed.data;
 
