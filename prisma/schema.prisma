@@ -1,6 +1,6 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -26,17 +26,16 @@ enum DayOfWeek {
 }
 
 model User {
-  id                        String    @id @default(cuid())
-  email                     String    @unique
-  password_hash             String
-  reset_password_token      String?   @unique
-  reset_password_expires_at DateTime?
-  created_at                DateTime  @default(now())
-  updated_at                DateTime  @updatedAt
+  id            String @id @default(uuid())
+  email         String @unique
+  password_hash String
+  role          String
 
-  profile Profile?
+  profile      Profile?
+  psychologist Psychologist?
 
-  @@map("users")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model Profile {
@@ -55,6 +54,19 @@ model Profile {
   @@map("profile")
 }
 
+model Psychologist {
+  id         String   @id @default(cuid())
+  user_id    String   @unique
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  availabilities Availability[]
+  appointments   Appointment[]
+
+  @@map("psychologists")
+}
+
 model Availability {
   id               String    @id @default(cuid())
   psychologist_id  String
@@ -66,21 +78,26 @@ model Availability {
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
 
+  psychologist Psychologist @relation(fields: [psychologist_id], references: [id], onDelete: Cascade)
+
   @@unique([psychologist_id, day_of_week])
   @@index([psychologist_id, day_of_week])
   @@map("availability")
 }
 
 model Appointment {
-  id            String            @id @default(cuid())
-  nome_paciente String
-  email         String
-  telefone      String
-  mensagem      String?
-  data          String
-  hora          String
-  status        AppointmentStatus @default(PENDING)
-  created_at    DateTime          @default(now())
+  id              String            @id @default(cuid())
+  psychologist_id String
+  nome_paciente   String
+  email           String
+  telefone        String
+  mensagem        String?
+  data            String
+  hora            String
+  status          AppointmentStatus @default(PENDING)
+  created_at      DateTime          @default(now())
+
+  psychologist Psychologist @relation(fields: [psychologist_id], references: [id], onDelete: Cascade)
 
   @@unique([data, hora])
   @@index([status, data])
