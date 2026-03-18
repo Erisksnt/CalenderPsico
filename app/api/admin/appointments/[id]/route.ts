@@ -32,9 +32,19 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     return NextResponse.json(updated);
   } catch (error) {
+
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
     }
+
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
+
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
+
     console.error('Erro ao atualizar agendamento do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }

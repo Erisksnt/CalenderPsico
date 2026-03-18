@@ -1,10 +1,13 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
-import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
+import prisma, {
+  createDatabaseUnavailableResponse,
+  isDatabaseConnectionError,
+} from '@/lib/database';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { ProfileSchema } from '@/lib/validators';
-
-export const dynamic = 'force-dynamic';
 
 const PROFILE_SELECT = {
   id: true,
@@ -19,9 +22,13 @@ const PROFILE_SELECT = {
 export async function GET(request: NextRequest) {
   try {
     await ensureDefaultAdmin();
+
     const user = await getAuthenticatedUser(request);
     if (!user?.psychologist) {
-      return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: 'Não autorizado' },
+        { status: 401 }
+      );
     }
 
     const profile = await prisma.profile.findUnique({
@@ -30,28 +37,44 @@ export async function GET(request: NextRequest) {
     });
 
     if (!profile) {
-      return NextResponse.json({ success: false, error: 'Perfil não encontrado' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: 'Perfil não encontrado' },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ success: true, data: profile }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: profile },
+      { status: 200 }
+    );
   } catch (error) {
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
     }
+
     console.error('Erro ao buscar perfil do psicólogo:', error);
-    return NextResponse.json({ success: false, error: 'Erro interno do servidor' }, { status: 500 });
+
+    return NextResponse.json(
+      { success: false, error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
     await ensureDefaultAdmin();
+
     const user = await getAuthenticatedUser(request);
     if (!user?.psychologist) {
-      return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: 'Não autorizado' },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
+
     const parsed = ProfileSchema.safeParse({
       ...body,
       specialties: Array.isArray(body.specialties)
@@ -63,22 +86,37 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json({ success: false, error: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
 
     const profile = await prisma.profile.upsert({
       where: { user_id: user.id },
       update: { ...parsed.data, photo_url: parsed.data.photo_url || null },
-      create: { user_id: user.id, ...parsed.data, photo_url: parsed.data.photo_url || null },
+      create: {
+        user_id: user.id,
+        ...parsed.data,
+        photo_url: parsed.data.photo_url || null,
+      },
       select: PROFILE_SELECT,
     });
 
-    return NextResponse.json({ success: true, data: profile }, { status: 200 });
+    return NextResponse.json(
+      { success: true, data: profile },
+      { status: 200 }
+    );
   } catch (error) {
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
     }
+
     console.error('Erro ao atualizar perfil do psicólogo:', error);
-    return NextResponse.json({ success: false, error: 'Erro interno do servidor' }, { status: 500 });
+
+    return NextResponse.json(
+      { success: false, error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
   }
 }

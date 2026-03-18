@@ -11,6 +11,7 @@ Sistema simples de portfólio + agenda pública para um único psicólogo.
 1. Copie `.env.example` para `.env`.
 
 > Importante: mantenha o `DATABASE_URL` no arquivo `.env` alinhado com o banco real. Se existir `.env.local` antigo apontando para outro host/porta, remova-o ou sincronize-o antes de rodar `npm run dev`.
+
 2. Se você não tiver PostgreSQL rodando localmente, suba o banco com Docker:
    ```bash
    docker compose up -d postgres

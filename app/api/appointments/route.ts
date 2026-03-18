@@ -1,7 +1,14 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
+function getTodayISO() {
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
+}
+
+import prisma from '@/lib/database';
+
 import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { BookAppointmentSchema } from '@/lib/validators';
