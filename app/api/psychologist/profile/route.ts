@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import prisma from '@/lib/database';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { ensureDefaultAdmin } from '@/lib/bootstrap';
@@ -35,6 +36,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: profile }, { status: 200 });
   } catch (error) {
+
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
+    
     console.error('Erro ao buscar perfil do psicólogo:', error);
     return NextResponse.json({ success: false, error: 'Erro interno do servidor' }, { status: 500 });
   }
@@ -72,6 +78,9 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: profile }, { status: 200 });
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao atualizar perfil do psicólogo:', error);
     return NextResponse.json({ success: false, error: 'Erro interno do servidor' }, { status: 500 });
   }

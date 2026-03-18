@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/database';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
 import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { AvailabilityBulkSchema } from '@/lib/validators';
@@ -27,6 +27,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(rows);
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao carregar disponibilidade do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
@@ -66,6 +69,9 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(rows);
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao salvar disponibilidade do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/database';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
 import { ensureDefaultAdmin } from '@/lib/bootstrap';
 
@@ -39,6 +39,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(appointments);
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao carregar agendamentos do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }

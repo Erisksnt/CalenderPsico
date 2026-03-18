@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+import { NextResponse } from 'next/server';
 
 declare global {
   var prisma: PrismaClient | undefined;
@@ -23,6 +24,32 @@ const prismaProxy = new Proxy({} as PrismaClient, {
 });
 
 export default prismaProxy;
+
+export function isDatabaseConnectionError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return true;
+  }
+
+  if (error instanceof Error) {
+    return (
+      error.message.includes('DATABASE_URL is required') ||
+      error.message.includes("Can't reach database server") ||
+      error.message.includes('connect ECONNREFUSED')
+    );
+  }
+
+  return false;
+}
+
+export function createDatabaseUnavailableResponse() {
+  return NextResponse.json(
+    {
+      error:
+        'Banco de dados indisponível. Inicie o PostgreSQL e rode `npm run db:push` e `npm run db:seed` antes de tentar novamente.',
+    },
+    { status: 503 },
+  );
+}
 
 // legacy compatibility helpers for unused legacy routes
 export async function getOrCreatePatient() {

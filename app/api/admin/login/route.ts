@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/database';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { AdminLoginSchema } from '@/lib/validators';
 import { buildAuthCookie, createToken } from '@/lib/auth';
 import { ensureDefaultAdmin } from '@/lib/bootstrap';
@@ -56,6 +56,11 @@ export async function POST(request: Request) {
       },
     );
   } catch (error) {
+
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
+
     console.error('Erro no login do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { getAvailableSlots, getEnabledWeekdays } from '@/lib/scheduling';
 
@@ -25,6 +26,10 @@ export async function GET(request: Request) {
     const [slots, enabledWeekdays] = await Promise.all([getAvailableSlots(date), getEnabledWeekdays()]);
     return NextResponse.json({ date, slots, enabledWeekdays });
   } catch (error) {
+
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao carregar slots públicos:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
