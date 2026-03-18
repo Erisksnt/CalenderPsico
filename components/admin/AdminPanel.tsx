@@ -1,15 +1,34 @@
+
+
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 
-const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sabado'];
-const defaultItems = weekdays.map((_, weekday) => ({
-  weekday,
-  enabled: false,
-  start_time: '09:00',
-  end_time: '18:00',
-  session_duration: 50,
-}));
+const WEEKDAY_OPTIONS = [
+  { value: 'MONDAY', label: 'Segunda-feira' },
+  { value: 'TUESDAY', label: 'Terça-feira' },
+  { value: 'WEDNESDAY', label: 'Quarta-feira' },
+  { value: 'THURSDAY', label: 'Quinta-feira' },
+  { value: 'FRIDAY', label: 'Sexta-feira' },
+  { value: 'SATURDAY', label: 'Sábado' },
+  { value: 'SUNDAY', label: 'Domingo' },
+];
+const WEEKDAY_LABELS = WEEKDAY_OPTIONS.reduce<Record<string, string>>((map, option) => {
+  map[option.value] = option.label;
+  return map;
+}, {});
+const getWeekdayLabel = (day_of_week: string) => WEEKDAY_LABELS[day_of_week] ?? day_of_week;
+
+const buildEmptyAvailability = () =>
+  WEEKDAY_OPTIONS.map(({ value }) => ({
+    day_of_week: value,
+    is_blocked: true,
+    start_time: '09:00',
+    end_time: '18:00',
+    session_duration: 50,
+  }));
+
+type AvailabilityFormItem = ReturnType<typeof buildEmptyAvailability>[number];
 
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -28,14 +47,14 @@ type Appointment = {
   mensagem?: string | null;
   data: string;
   hora: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 };
 
 const statusLabel: Record<Appointment['status'], string> = {
-  pending: 'Aguardando confirmação',
-  confirmed: 'Ambientação confirmada',
-  cancelled: 'Solicitação cancelada',
-  completed: 'Ambientação concluída',
+  PENDING: 'Aguardando confirmação',
+  CONFIRMED: 'Ambientação confirmada',
+  CANCELLED: 'Solicitação cancelada',
+  COMPLETED: 'Ambientação concluída',
 };
 
 function formatApiError(payload: unknown, status: number) {
@@ -61,26 +80,52 @@ function formatApiError(payload: unknown, status: number) {
 }
 
 
-async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
+async function safeFetchJson<T>(
+  url: string,
+  init?: RequestInit
+): Promise<{ ok: boolean; status: number; data: T | null; error?: string }> {
   try {
     const response = await fetch(url, init);
     const text = await response.text();
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
+
       const error = formatApiError(payload, response.status);
       return { ok: false, status: response.status, data: payload, error };
+
+      const errorData =
+        payload && typeof payload === 'object' && 'error' in payload
+          ? String((payload as { error: string }).error)
+          : `Erro ${response.status}`;
+
+      return {
+        ok: false,
+        status: response.status,
+        data: payload,
+        error: errorData,
+      };
+
     }
 
-    return { ok: true, status: response.status, data: payload };
+    return {
+      ok: true,
+      status: response.status,
+      data: payload,
+    };
   } catch (error) {
-    return { ok: false, status: 0, data: null, error: error instanceof Error ? error.message : 'Erro inesperado' };
+    return {
+      ok: false,
+      status: 0,
+      data: null,
+      error: error instanceof Error ? error.message : 'Erro inesperado',
+    };
   }
 }
 
 export default function AdminPanel() {
   const [profile, setProfile] = useState({ full_name: '', photo_url: '', professional_bio: '', work_method: '', specialties: '' });
-  const [availability, setAvailability] = useState(defaultItems);
+  const [availability, setAvailability] = useState<AvailabilityFormItem[]>(() => buildEmptyAvailability());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [editingProfile, setEditingProfile] = useState(true);
   const [editingAvailability, setEditingAvailability] = useState(true);
@@ -93,7 +138,7 @@ export default function AdminPanel() {
 
     const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
       safeFetchJson<Record<string, unknown> | null>('/api/admin/profile'),
-      safeFetchJson<Array<typeof defaultItems[number]>>('/api/admin/availability'),
+      safeFetchJson<AvailabilityFormItem[]>('/api/admin/availability'),
       safeFetchJson<Appointment[]>('/api/admin/appointments'),
     ]);
 
@@ -115,9 +160,13 @@ export default function AdminPanel() {
       if (p.full_name || p.professional_bio) setEditingProfile(false);
     }
 
-    if (availabilityRes.ok && Array.isArray(availabilityRes.data) && availabilityRes.data.length) {
-      setAvailability(availabilityRes.data);
-      setEditingAvailability(false);
+    if (availabilityRes.ok && Array.isArray(availabilityRes.data)) {
+      const merged = buildEmptyAvailability().map((item) => {
+        const existing = availabilityRes.data?.find((row) => row.day_of_week === item.day_of_week);
+        return existing ? { ...item, ...existing } : item;
+      });
+      setAvailability(merged);
+      if (availabilityRes.data.length) setEditingAvailability(false);
     }
 
     if (appointmentsRes.ok && Array.isArray(appointmentsRes.data)) {
@@ -178,7 +227,7 @@ export default function AdminPanel() {
     setMessage({ type: 'success', text: 'Disponibilidade salva com sucesso.' });
   }
 
-  async function updateStatus(id: string, status: 'confirmed' | 'cancelled') {
+  async function updateStatus(id: string, status: 'CONFIRMED' | 'CANCELLED') {
     const result = await safeFetchJson(`/api/admin/appointments/${id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
@@ -192,10 +241,10 @@ export default function AdminPanel() {
     await loadAll();
   }
 
-  const enabledAvailability = useMemo(() => availability.filter((item) => item.enabled), [availability]);
-  const pendingAppointments = useMemo(() => appointments.filter((a) => a.status === 'pending'), [appointments]);
-  const doneAppointments = useMemo(() => appointments.filter((a) => a.status === 'confirmed' || a.status === 'completed'), [appointments]);
-  const cancelledAppointments = useMemo(() => appointments.filter((a) => a.status === 'cancelled'), [appointments]);
+  const enabledAvailability = useMemo(() => availability.filter((item) => !item.is_blocked), [availability]);
+  const pendingAppointments = useMemo(() => appointments.filter((a) => a.status === 'PENDING'), [appointments]);
+  const doneAppointments = useMemo(() => appointments.filter((a) => a.status === 'CONFIRMED' || a.status === 'COMPLETED'), [appointments]);
+  const cancelledAppointments = useMemo(() => appointments.filter((a) => a.status === 'CANCELLED'), [appointments]);
 
   return (
     <div className="space-y-6 pb-8">
@@ -303,15 +352,15 @@ export default function AdminPanel() {
         {editingAvailability ? (
           <>
             <div className="space-y-2">
-              {availability.map((item, i) => (
-                <div key={item.weekday} className="grid grid-cols-5 gap-2 items-center">
-                  <span>{weekdays[item.weekday]}</span>
+            {availability.map((item, i) => (
+                <div key={item.day_of_week} className="grid grid-cols-5 gap-2 items-center">
+                  <span>{getWeekdayLabel(item.day_of_week)}</span>
                   <input
                     type="checkbox"
                     className="availability-checkbox"
-                    checked={item.enabled}
+                    checked={!item.is_blocked}
                     onChange={(e) => {
-                      const next = [...availability]; next[i].enabled = e.target.checked; setAvailability(next);
+                      const next = [...availability]; next[i].is_blocked = !e.target.checked; setAvailability(next);
                     }}
                   />
                   <input className="border p-1 rounded" type="time" value={item.start_time} onChange={(e) => { const next = [...availability]; next[i].start_time = e.target.value; setAvailability(next); }} />
@@ -330,7 +379,7 @@ export default function AdminPanel() {
         ) : (
           <div className="space-y-1 text-sm text-gray-800">
             {enabledAvailability.length ? enabledAvailability.map((item) => (
-              <p key={item.weekday}><strong>{weekdays[item.weekday]}:</strong> {item.start_time} - {item.end_time}</p>
+              <p key={item.day_of_week}><strong>{getWeekdayLabel(item.day_of_week)}:</strong> {item.start_time} - {item.end_time}</p>
             )) : <p>Nenhum horário disponível selecionado.</p>}
           </div>
         )}
@@ -351,8 +400,8 @@ export default function AdminPanel() {
               <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
               <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
               <div className="flex gap-2">
-                <button className="inline-flex items-center justify-center rounded-full bg-green-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-green-700" onClick={() => updateStatus(a.id, 'confirmed')}>Confirmar</button>
-                <button className="inline-flex items-center justify-center rounded-full bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700" onClick={() => updateStatus(a.id, 'cancelled')}>Cancelar</button>
+                <button className="inline-flex items-center justify-center rounded-full bg-green-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-green-700" onClick={() => updateStatus(a.id, 'CONFIRMED')}>Confirmar</button>
+                <button className="inline-flex items-center justify-center rounded-full bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700" onClick={() => updateStatus(a.id, 'CANCELLED')}>Cancelar</button>
               </div>
             </div>
           ))}

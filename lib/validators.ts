@@ -51,16 +51,53 @@ export const ProfileSchema = z.object({
   specialties: z.array(z.string().min(2)).default([]),
 });
 
+const DAY_OF_WEEK_VALUES = [
+  'SUNDAY',
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+] as const;
+
 export const AvailabilityItemSchema = z.object({
-  weekday: z.number().min(0).max(6),
-  enabled: z.boolean(),
+  day_of_week: z.enum(DAY_OF_WEEK_VALUES),
+  is_blocked: z.boolean().default(false),
   start_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   end_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   session_duration: z.number().min(30).max(120),
 });
 
-export const AvailabilitySchema = z.object({
-  items: z.array(AvailabilityItemSchema).length(7),
+export const AvailabilityBulkSchema = z.object({
+  items: z
+    .array(AvailabilityItemSchema)
+    .length(DAY_OF_WEEK_VALUES.length)
+    .superRefine((items, ctx) => {
+      const seen = new Set<string>();
+      items.forEach((item, index) => {
+        if (seen.has(item.day_of_week)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['items', index, 'day_of_week'],
+            message: 'Dia da semana duplicado',
+          });
+        }
+        seen.add(item.day_of_week);
+      });
+      if (seen.size !== DAY_OF_WEEK_VALUES.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['items'],
+          message: 'Cada dia da semana deve aparecer apenas uma vez',
+        });
+      }
+    }),
+});
+
+export const AvailabilityCreateSchema = AvailabilityItemSchema.omit({
+  is_blocked: true,
+  session_duration: true,
 });
 
 export const BookAppointmentSchema = z.object({
@@ -73,7 +110,7 @@ export const BookAppointmentSchema = z.object({
 });
 
 export const UpdateAppointmentStatusSchema = z.object({
-  status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']),
+  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']),
 });
 
 /* legacy compatibility */
@@ -82,3 +119,4 @@ export const RegisterSchema = AdminRegisterSchema;
 export const PsychologistProfileSchema = ProfileSchema;
 export const CreateAppointmentSchema = BookAppointmentSchema;
 export const UpdateAppointmentSchema = UpdateAppointmentStatusSchema;
+export const AvailabilitySchema = AvailabilityCreateSchema;
