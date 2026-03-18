@@ -1,3 +1,10 @@
+import { NextResponse } from 'next/server';
+import { AdminLoginSchema } from '@/lib/validators';
+import { ensureDefaultAdmin } from '@/lib/bootstrap';
+import { verifyPassword, createToken, buildAuthCookie } from '@/lib/auth';
+import { isDatabaseConnectionError, createDatabaseUnavailableResponse } from '@/lib/database';
+import prisma from '@/lib/database';
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();

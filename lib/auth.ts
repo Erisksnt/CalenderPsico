@@ -1,6 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import prisma from './database';
+import bcrypt from 'bcryptjs';
+
+export async function verifyPassword(password: string, hash: string) {
+  return bcrypt.compare(password, hash);
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 export const COOKIE_NAME = 'admin_session';

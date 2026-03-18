@@ -12,9 +12,9 @@ export function toHour(totalMinutes: number) {
   const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
   const minutes = String(totalMinutes % 60).padStart(2, '0');
   return `${hours}:${minutes}`;
-}
+} 
 
-function getTodayISO() {
+export function getTodayISO() {
   const now = new Date();
   const tzOffset = now.getTimezoneOffset() * 60_000;
   return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);

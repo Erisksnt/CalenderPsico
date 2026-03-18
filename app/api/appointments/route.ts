@@ -1,24 +1,12 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-function getTodayISO() {
-  const now = new Date();
-  const tzOffset = now.getTimezoneOffset() * 60_000;
-  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
-}
-
 import prisma from '@/lib/database';
-
 import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { BookAppointmentSchema } from '@/lib/validators';
-import { getAvailableSlots } from '@/lib/scheduling';
-
-function getTodayISO() {
-  const now = new Date();
-  const tzOffset = now.getTimezoneOffset() * 60_000;
-  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
-}
+import { getTodayISO, getAvailableSlots } from '@/lib/scheduling';
+import { isDatabaseConnectionError, createDatabaseUnavailableResponse } from '@/lib/database';
 
 export async function GET(req: NextRequest) {
   try {
@@ -32,14 +20,24 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const date = searchParams.get('date');
 
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        psychologist_id: user.psychologist.id,
-        ...(status ? { status: status as any } : {}),
-        ...(date ? { data: date } : {}),
-      },
-      orderBy: [{ data: 'asc' }, { hora: 'asc' }],
-    });
+const appointments = await prisma.appointment.findMany({
+  where: {
+    psychologist_id: user.psychologist.id,
+    ...(status ? { status: status as any } : {}),
+    ...(date ? { data: date } : {}),
+  },
+  orderBy: [{ data: 'asc' }, { hora: 'asc' }],
+  select: {
+    id: true,
+    nome_paciente: true,
+    email: true,
+    telefone: true,
+    mensagem: true,
+    data: true,
+    hora: true,
+    status: true
+  }
+});
 
     return NextResponse.json({ success: true, data: appointments }, { status: 200 });
   } catch (error) {
@@ -97,7 +95,13 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         data: appointment,
-        message: 'Solicitação de agendamento enviada com sucesso!',
+        message: `✨ Sua ambientação foi solicitada com sucesso e está aguardando a confirmação do psicólogo.
+
+💬 Este primeiro contato permitirá que vocês se conheçam melhor e sintam se querem seguir com o processo terapêutico.
+
+📅 Você receberá a confirmação da agenda por e-mail ou ligação telefônica.
+
+🤗 Estamos felizes em te acompanhar nesse início da sua jornada!`
       },
       { status: 201 },
     );
