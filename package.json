@@ -17,6 +17,9 @@
     "db:reset": "prisma migrate reset",
     "test": "jest",
     "test:watch": "jest --watch",
+    "db:seed": "node prisma/seed.js",
+    "db:start": "docker compose up -d postgres",
+    "db:stop": "docker compose down"
     "db:seed": "node prisma/seed.js"
   },
   "dependencies": {

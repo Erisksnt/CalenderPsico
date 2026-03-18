@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/database';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { ResetPasswordSchema } from '@/lib/validators';
 import { hashPassword } from '@/lib/password';
 

@@ -4,33 +4,39 @@ Sistema simples de portfólio + agenda pública para um único psicólogo.
 
 ## Requisitos
 - Node.js 18+
-- PostgreSQL
+- PostgreSQL 16+
+- Docker Desktop (opcional, recomendado para subir o banco local)
 
 ## Configuração local
-1. Copie `.env.example` para `.env` e configure:
-   - `DATABASE_URL`
-   - `DIRECT_URL`
-   - `JWT_SECRET`
-2. Gere client prisma:
+1. Copie `.env.example` para `.env`.
+2. Se você não tiver PostgreSQL rodando localmente, suba o banco com Docker:
+   ```bash
+   docker compose up -d postgres
+   ```
+3. Instale as dependências:
+   ```bash
+   npm install
+   ```
+4. Gere o client Prisma:
    ```bash
    npm run prisma:generate
    ```
-3. Aplique schema no banco:
+5. Aplique o schema no banco:
    ```bash
    npm run db:push
    ```
-4. Rode a aplicação:
+6. Popule o admin padrão:
+   ```bash
+   npm run db:seed
+   ```
+7. Rode a aplicação:
    ```bash
    npm run dev
    ```
 
-## Perfis e disponibilidade
-- As informações do psicólogo (nome, foto, bio, método e especialidades) são salvas via:
-  - `GET/PUT /api/admin/profile`
-  - `GET/PUT /api/psychologists/profile`
-- A disponibilidade é salva via:
-  - `GET/PUT /api/admin/availability`
-  - `GET/POST /api/psychologists/time-blocks`
+## Admin padrão
+- Email: `thais_snt@psicologia.com.br`
+- Senha: `T34mo%1104`
 
 ## Endpoints principais
 ### Públicos
@@ -39,7 +45,6 @@ Sistema simples de portfólio + agenda pública para um único psicólogo.
 - `POST /api/public/appointments`
 
 ### Admin
-- `POST /api/admin/register`
 - `POST /api/admin/login`
 - `POST /api/admin/logout`
 - `POST /api/admin/forgot-password`

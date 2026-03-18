@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/database';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
 import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { UpdateAppointmentStatusSchema } from '@/lib/validators';
@@ -32,6 +32,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     return NextResponse.json(updated);
   } catch (error) {
+
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
+
     console.error('Erro ao atualizar agendamento do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
