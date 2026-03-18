@@ -59,17 +59,34 @@ export async function ensureDefaultAdmin() {
   return { user, psychologist };
 }
 
+// ✅ VERSÃO OTIMIZADA - sem ensureDefaultAdmin e com select
 export async function getPrimaryPsychologist() {
-  await ensureDefaultAdmin();
+  // 🔥 REMOVIDO: await ensureDefaultAdmin();
 
   return prisma.psychologist.findFirst({
     orderBy: { created_at: 'asc' },
-    include: {
+    select: {  // ⚡ Select otimizado
+      id: true,
+      user_id: true,
+      name: true,
+      bio: true,
+      registration_number: true,
+      phone: true,
+      specialties: true,
       user: {
-        include: {
-          profile: true,
-        },
-      },
-    },
+        select: {
+          profile: {
+            select: {
+              id: true,
+              full_name: true,
+              professional_bio: true,
+              work_method: true,
+              specialties: true,
+              photo_url: true,
+            }
+          }
+        }
+      }
+    }
   });
 }

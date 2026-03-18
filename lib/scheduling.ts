@@ -3,6 +3,38 @@ import { getPrimaryPsychologist } from './bootstrap';
 
 const DAY_MAP = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'] as const;
 
+// ⚡ Cache para o ID do psicólogo principal
+let cachedPsychologistId: string | null = null;
+let lastFetch = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+async function getCachedPsychologistId() {
+  const now = Date.now();
+  
+  // Se o cache ainda é válido, retorna
+  if (cachedPsychologistId && (now - lastFetch) < CACHE_TTL) {
+    return cachedPsychologistId;
+  }
+  
+  // Busca do banco apenas o ID
+  const psychologist = await prisma.psychologist.findFirst({
+    orderBy: { created_at: 'asc' },
+    select: { id: true }
+  });
+  
+  cachedPsychologistId = psychologist?.id ?? null;
+  lastFetch = now;
+  
+  return cachedPsychologistId;
+}
+
+async function resolvePsychologistId(psychologistId?: string) {
+  if (psychologistId) return psychologistId;
+  
+  // ✅ Usa cache em vez de chamar o banco toda vez
+  return getCachedPsychologistId();
+}
+
 export function toMinutes(time: string) {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
@@ -25,23 +57,25 @@ function getCurrentTime() {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
-async function resolvePsychologistId(psychologistId?: string) {
-  if (psychologistId) return psychologistId;
-  const psychologist = await getPrimaryPsychologist();
-  return psychologist?.id ?? null;
-}
-
 export async function getAvailableSlots(date: string, psychologistId?: string) {
   const targetPsychologistId = await resolvePsychologistId(psychologistId);
   if (!targetPsychologistId) return [];
 
   const day_of_week = DAY_MAP[new Date(`${date}T00:00:00`).getDay()];
+  
+  // ⚡ Buscar apenas os campos necessários
   const config = await prisma.availability.findUnique({
     where: {
       psychologist_id_day_of_week: {
         psychologist_id: targetPsychologistId,
         day_of_week,
       },
+    },
+    select: {  // ✅ Só o que precisa
+      is_blocked: true,
+      start_time: true,
+      end_time: true,
+      session_duration: true,
     },
   });
 
@@ -53,7 +87,7 @@ export async function getAvailableSlots(date: string, psychologistId?: string) {
       data: date,
       status: { in: ['PENDING', 'CONFIRMED'] },
     },
-    select: { hora: true },
+    select: { hora: true }, // ✅ Já está otimizado
   });
 
   const busyHours = new Set(appointments.map((appointment) => appointment.hora));
@@ -86,7 +120,7 @@ export async function getEnabledWeekdays(psychologistId?: string) {
       psychologist_id: targetPsychologistId,
       is_blocked: false,
     },
-    select: { day_of_week: true },
+    select: { day_of_week: true }, // ✅ Já está otimizado
   });
 
   return Array.from(new Set(rows.map((row) => DAY_MAP.indexOf(row.day_of_week)))).sort((a, b) => a - b);

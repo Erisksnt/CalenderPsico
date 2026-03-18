@@ -2,9 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: false,
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // ✅ REMOVIDO: typescript: { ignoreBuildErrors: true },
   headers: async () => {
     return [
       {

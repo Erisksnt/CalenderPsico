@@ -15,6 +15,13 @@ export type AuthPayload = {
   email: string;
   role: 'ADMIN' | 'PSYCHOLOGIST';
   psychologistId?: string;
+  // ⚡ Adicionar dados básicos ao payload para evitar banco
+  userName?: string;
+  userProfile?: {
+    id: string;
+    full_name?: string;
+    photo_url?: string;
+  };
 };
 
 export function createToken(payload: AuthPayload) {
@@ -54,7 +61,8 @@ export function clearAuthCookie() {
   return `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
 }
 
-export async function getAuthenticatedUser(request: Request) {
+// ✅ VERSÃO OTIMIZADA - SEM QUERY NO BANCO!
+export function getAuthenticatedUser(request: Request) {
   const bearerToken = getTokenFromHeader(request.headers.get('authorization'));
   const cookieToken = getTokenFromCookieHeader(request.headers.get('cookie'));
   const token = bearerToken || cookieToken;
@@ -64,8 +72,28 @@ export async function getAuthenticatedUser(request: Request) {
   const payload = verifyToken(token);
   if (!payload) return null;
 
+  // ✅ Retorna os dados do token, SEM buscar no banco!
+  return {
+    id: payload.userId,
+    email: payload.email,
+    role: payload.role,
+    psychologist: payload.psychologistId ? { id: payload.psychologistId } : null,
+    profile: payload.userProfile ? {
+      id: payload.userProfile.id,
+      full_name: payload.userProfile.full_name,
+      photo_url: payload.userProfile.photo_url
+    } : null
+  };
+}
+
+// ⚡ Função específica para quando PRECISA do banco (raro)
+export async function getAuthenticatedUserWithDB(request: Request) {
+  const user = getAuthenticatedUser(request);
+  if (!user) return null;
+
+  // Só busca no banco se realmente precisar de dados completos
   return prisma.user.findUnique({
-    where: { id: payload.userId },
+    where: { id: user.id },
     include: {
       profile: true,
       psychologist: true,
@@ -74,7 +102,7 @@ export async function getAuthenticatedUser(request: Request) {
 }
 
 export async function getAdminFromRequest(request: Request) {
-  const user = await getAuthenticatedUser(request);
+  const user = getAuthenticatedUser(request); // ✅ Agora SEM query!
   if (!user || user.role !== 'ADMIN') return null;
   return user;
 }
@@ -86,13 +114,12 @@ export async function getAdminFromServerCookie() {
   const payload = verifyToken(token);
   if (!payload) return null;
 
-  return prisma.user.findUnique({
-    where: { id: payload.userId },
-    include: {
-      profile: true,
-      psychologist: true,
-    },
-  });
+  return {
+    id: payload.userId,
+    email: payload.email,
+    role: payload.role,
+    psychologist: payload.psychologistId ? { id: payload.psychologistId } : null,
+  };
 }
 
 export const verifyJWT = verifyToken;

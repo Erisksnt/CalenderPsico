@@ -1,224 +1,164 @@
-// components/patient/BookingForm.tsx
-// Formulário de agendamento de consulta
-
+// components/patient/AvailabilityList.tsx
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
-import { formatDateTimeBR, formatCurrency } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { formatCurrency } from '@/lib/utils';
+import BookingForm from './BookingForm';
 
 interface Service {
   id: string;
   name: string;
+  description?: string;
   duration: number;
   price: number;
-  description?: string;
 }
 
-interface BookingFormProps {
-  psychologistId: string;
-  onBookingComplete?: () => void;
+interface Psychologist {
+  id: string;
+  name: string;
+  bio?: string;
+  specialties: string[];
+  services: Service[];
 }
 
-export default function BookingForm({ psychologistId, onBookingComplete }: BookingFormProps) {
-  const [services, setServices] = useState<Service[]>([]);
-  const [selectedService, setSelectedService] = useState<string>('');
-  const [patientName, setPatientName] = useState('');
-  const [patientEmail, setPatientEmail] = useState('');
-  const [patientPhone, setPatientPhone] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [notes, setNotes] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+export default function AvailabilityList() {
+  const [psychologist, setPsychologist] = useState<Psychologist | null>(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Carrega serviços ao abrir o formulário
   useEffect(() => {
-    fetchServices();
-  }, [psychologistId]);
+    fetchPsychologist();
+  }, []);
 
-  const fetchServices = async () => {
+  const fetchPsychologist = async () => {
     try {
-      const response = await fetch(`/api/services?psychologist_id=${psychologistId}`);
-      const data = await response.json();
-
-      if (data.success && data.data.length > 0) {
-        setServices(data.data);
-        // Seleciona automaticamente o primeiro (e único) serviço
-        setSelectedService(data.data[0].id);
-      }
-    } catch {
-      console.error('Erro ao carregar serviços');
-    }
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: selectedService,
-          patient_name: patientName,
-          patient_email: patientEmail,
-          patient_phone: patientPhone,
-          start_time: new Date(`${selectedDate}T${selectedTime}`).toISOString(),
-          notes,
-        }),
-      });
-
+      setLoading(true);
+      setError(null);
+      
+      // ⚡ Chamada otimizada - já usa a API que melhoramos
+      const response = await fetch('/api/psychologists');
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.error || 'Erro ao agendar');
+        setError(data.error || 'Erro ao carregar dados');
         return;
       }
 
-      setSuccess(true);
-      onBookingComplete?.();
-
-      // Limpa o formulário
-      setPatientName('');
-      setPatientEmail('');
-      setPatientPhone('');
-      setSelectedDate('');
-      setSelectedTime('');
-      setNotes('');
-    } catch (err) {
-      setError('Erro ao conectar ao servidor');
+      if (data.data && data.data.length > 0) {
+        setPsychologist(data.data[0]);
+      } else {
+        setError('Psicólogo não encontrado');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar perfil do psicólogo:', error);
+      setError('Erro ao conectar com o servidor');
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedServiceData = services.find((s) => s.id === selectedService);
-
-  if (success) {
+  if (loading) {
     return (
-      <div className="max-w-md mx-auto bg-green-50 border border-green-200 rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-green-700 mb-4">✅ Agendamento Confirmado!</h2>
-        <p className="text-gray-700 mb-2">
-          Enviamos um email de confirmação para <strong>{patientEmail}</strong>
-        </p>
-        <p className="text-gray-700 mb-4">
-          Verifique seu email para confirmar o agendamento.
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-r-transparent"></div>
+          <p className="mt-2 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !psychologist) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-600 mb-4">
+          {error || 'Psicólogo não disponível no momento.'}
         </p>
         <button
-          onClick={() => setSuccess(false)}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          onClick={fetchPsychologist}
+          className="text-blue-600 hover:text-blue-700 font-medium"
         >
-          Fazer outro agendamento
+          Tentar novamente
         </button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Agendar Consulta</h2>
+    <div className="container mx-auto px-6">
+      {showBookingForm ? (
+        <div>
+          <button
+            onClick={() => setShowBookingForm(false)}
+            className="mb-4 text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2"
+          >
+            ← Voltar
+          </button>
+          <BookingForm
+            psychologistId={psychologist.id}
+            onBookingComplete={() => setShowBookingForm(false)}
+          />
+        </div>
+      ) : (
+        <div>
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
+            <h1 className="text-4xl font-bold mb-4">{psychologist.name}</h1>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+            {psychologist.bio && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                <h2 className="text-lg font-bold text-gray-700 mb-2">Sobre</h2>
+                <p className="text-gray-600 whitespace-pre-wrap">{psychologist.bio}</p>
+              </div>
+            )}
+
+            {psychologist.specialties && psychologist.specialties.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-lg font-bold text-gray-700 mb-3">Especialidades</h2>
+                <div className="flex flex-wrap gap-2">
+                  {psychologist.specialties.map((specialty, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
+                    >
+                      {specialty}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-700 mb-3">Serviços e Valores</h2>
+              {psychologist.services && psychologist.services.length > 0 ? (
+                <div className="space-y-3">
+                  {psychologist.services.map((service) => (
+                    <div
+                      key={service.id}
+                      className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                    >
+                      <div>
+                        <p className="font-bold text-gray-800">{service.name}</p>
+                        <p className="text-sm text-gray-600">Duração: {service.duration} minutos</p>
+                      </div>
+                      <p className="text-lg font-bold text-blue-600">{formatCurrency(service.price)}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600">Nenhum serviço cadastrado</p>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowBookingForm(true)}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition text-lg"
+            >
+              Agendar Consulta
+            </button>
+          </div>
         </div>
       )}
-
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Serviço</label>
-        {selectedServiceData ? (
-          <div className="bg-blue-50 border border-blue-200 rounded px-4 py-3">
-            <p className="font-bold text-blue-900">{selectedServiceData.name}</p>
-            <p className="text-sm text-gray-600">Duração: {selectedServiceData.duration} minutos</p>
-            <p className="text-sm text-blue-700 font-bold">Valor: {formatCurrency(selectedServiceData.price)}</p>
-            {selectedServiceData.description && (
-              <p className="text-sm text-gray-600 mt-2">{selectedServiceData.description}</p>
-            )}
-          </div>
-        ) : (
-          <div className="text-gray-500 text-center py-3">Carregando serviços...</div>
-        )}
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Nome</label>
-        <input
-          type="text"
-          value={patientName}
-          onChange={(e) => setPatientName(e.target.value)}
-          required
-          className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Seu nome completo"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Email</label>
-        <input
-          type="email"
-          value={patientEmail}
-          onChange={(e) => setPatientEmail(e.target.value)}
-          required
-          className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="seu@email.com"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Telefone</label>
-        <input
-          type="tel"
-          value={patientPhone}
-          onChange={(e) => setPatientPhone(e.target.value)}
-          required
-          className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="(11) 99999-9999"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Data</label>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          required
-          className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2">Horário</label>
-        <input
-          type="time"
-          value={selectedTime}
-          onChange={(e) => setSelectedTime(e.target.value)}
-          required
-          className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-gray-700 font-bold mb-2">Observações (opcional)</label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows={3}
-          placeholder="Algo que gostaria de relatar?"
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={loading || !selectedService}
-        className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
-      >
-        {loading ? 'Agendando...' : 'Confirmar Agendamento'}
-      </button>
-    </form>
+    </div>
   );
 }

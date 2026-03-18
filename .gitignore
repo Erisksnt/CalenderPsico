@@ -29,6 +29,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+next-env.d.ts
 
 # IDEs
 .vscode/
@@ -54,3 +55,4 @@ prisma/migrations/
 # Dependencies lock files (optional, uncomment if needed)
 # package-lock.json
 # yarn.lock
+

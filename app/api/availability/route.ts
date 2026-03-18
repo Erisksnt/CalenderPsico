@@ -5,28 +5,42 @@ import prisma, {
   createDatabaseUnavailableResponse,
   isDatabaseConnectionError,
 } from '@/lib/database';
-import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
+// 🔥 REMOVER: import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
 
 export async function GET(req: NextRequest) {
+  console.time("GET /api/availability");
+  
   try {
-    await ensureDefaultAdmin();
+    // 🔥 REMOVER: await ensureDefaultAdmin();
 
     const { searchParams } = new URL(req.url);
 
-    const psychologistId =
-      searchParams.get('psychologist_id') ||
-      (await getPrimaryPsychologist())?.id;
+    let psychologistId = searchParams.get('psychologist_id');
+
+    // ⚡ Só busca o primary se realmente não tiver psychologist_id
+    if (!psychologistId) {
+      console.time("findPrimaryPsychologist");
+      const primary = await prisma.psychologist.findFirst({
+        orderBy: { created_at: 'asc' },
+        select: { id: true } // ✅ Só precisa do ID
+      });
+      console.timeEnd("findPrimaryPsychologist");
+      
+      psychologistId = primary?.id || null;
+    }
 
     const dayOfWeek = searchParams.get('day_of_week');
     const excludeBlocked = searchParams.get('exclude_blocked') === 'true';
 
     if (!psychologistId) {
+      console.timeEnd("GET /api/availability");
       return NextResponse.json(
-        { success: false, error: 'psychologist_id é obrigatório' },
-        { status: 400 }
+        { success: false, error: 'Nenhum psicólogo encontrado' },
+        { status: 404 }
       );
     }
 
+    console.time("findAvailabilities");
     const availabilities = await prisma.availability.findMany({
       where: {
         psychologist_id: psychologistId,
@@ -34,13 +48,27 @@ export async function GET(req: NextRequest) {
         ...(excludeBlocked ? { is_blocked: false } : {}),
       },
       orderBy: [{ day_of_week: 'asc' }, { start_time: 'asc' }],
+      // ⚡ ADICIONAR select para buscar apenas campos necessários
+      select: {
+        id: true,
+        day_of_week: true,
+        start_time: true,
+        end_time: true,
+        is_blocked: true,
+        session_duration: true,
+        psychologist_id: true
+      }
     });
+    console.timeEnd("findAvailabilities");
 
+    console.timeEnd("GET /api/availability");
     return NextResponse.json(
       { success: true, data: availabilities },
       { status: 200 }
     );
   } catch (error) {
+    console.timeEnd("GET /api/availability");
+    
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
     }
