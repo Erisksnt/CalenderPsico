@@ -19,8 +19,13 @@
     "test:watch": "jest --watch",
     "db:seed": "node prisma/seed.js",
     "db:start": "docker compose up -d postgres",
+<<<<<<< HEAD
     "db:stop": "docker compose down"
     
+=======
+    "db:stop": "docker compose down",
+    "db:seed": "node prisma/seed.js"
+>>>>>>> 7dd1e337b6dc419a5ec9849c82b3f69fefe4fe40
   },
   "dependencies": {
     "@prisma/client": "^5.7.0",
