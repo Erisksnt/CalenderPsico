@@ -9,6 +9,8 @@ async function findProfile(adminId: string) {
   return prisma.profile.findUnique({ where: { user_id: adminId } });
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const admin = await getAdminFromRequest(request);

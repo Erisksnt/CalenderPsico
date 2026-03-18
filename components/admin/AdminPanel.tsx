@@ -90,6 +90,10 @@ async function safeFetchJson<T>(
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
+
+      const error = formatApiError(payload, response.status);
+      return { ok: false, status: response.status, data: payload, error };
+
       const errorData =
         payload && typeof payload === 'object' && 'error' in payload
           ? String((payload as { error: string }).error)
@@ -101,6 +105,7 @@ async function safeFetchJson<T>(
         data: payload,
         error: errorData,
       };
+
     }
 
     return {
