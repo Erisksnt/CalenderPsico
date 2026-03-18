@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import prisma from '@/lib/database';
+
 import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
 
 export async function GET(req: NextRequest) {
@@ -29,6 +30,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: availabilities }, { status: 200 });
   } catch (error) {
+
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
 
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();

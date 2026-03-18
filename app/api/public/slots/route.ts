@@ -27,6 +27,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ date, slots, enabledWeekdays });
   } catch (error) {
 
+    if (date < getTodayISO()) {
+      return NextResponse.json({ error: 'Não é possível visualizar horários para datas passadas.' }, { status: 400 });
+    }
+
+    const [slots, enabledWeekdays] = await Promise.all([getAvailableSlots(date), getEnabledWeekdays()]);
+    return NextResponse.json({ date, slots, enabledWeekdays });
+  } catch (error) {
+
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
     }

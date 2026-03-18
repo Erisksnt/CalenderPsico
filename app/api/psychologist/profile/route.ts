@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: profile }, { status: 200 });
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
 
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();

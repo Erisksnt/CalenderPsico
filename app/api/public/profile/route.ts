@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import prisma from '@/lib/database';
+
 import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
 
 export async function GET() {
