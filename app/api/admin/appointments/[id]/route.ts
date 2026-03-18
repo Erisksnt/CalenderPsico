@@ -1,22 +1,38 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
+import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { UpdateAppointmentStatusSchema } from '@/lib/validators';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const admin = await getAdminFromRequest(request);
-  if (!admin) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+  try {
+    await ensureDefaultAdmin();
+    const admin = await getAdminFromRequest(request);
+    if (!admin?.psychologist) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-  const body = await request.json();
-  const parsed = UpdateAppointmentStatusSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const body = await request.json();
+    const parsed = UpdateAppointmentStatusSchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const updated = await prisma.appointment.update({
-    where: { id: params.id },
-    data: { status: parsed.data.status as any },
-  });
+    const existing = await prisma.appointment.findFirst({
+      where: {
+        id: params.id,
+        psychologist_id: admin.psychologist.id,
+      },
+    });
 
-  return NextResponse.json(updated);
+    if (!existing) return NextResponse.json({ error: 'Agendamento não encontrado' }, { status: 404 });
+
+    const updated = await prisma.appointment.update({
+      where: { id: params.id },
+      data: { status: parsed.data.status },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Erro ao atualizar agendamento do admin:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
+  }
 }
