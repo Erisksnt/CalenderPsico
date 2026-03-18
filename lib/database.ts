@@ -78,6 +78,12 @@ export function createDatabaseUnavailableResponse() {
     {
       error:
         `Banco de dados indisponível em ${host}. Verifique se o mesmo DATABASE_URL usado no Prisma CLI também está sendo usado pelo Next.js e rode \`npm run db:push\` e \`npm run db:seed\` no banco correto.`,
+
+export function createDatabaseUnavailableResponse() {
+  return NextResponse.json(
+    {
+      error:
+        'Banco de dados indisponível. Inicie o PostgreSQL e rode `npm run db:push` e `npm run db:seed` antes de tentar novamente.',
     },
     { status: 503 },
   );
