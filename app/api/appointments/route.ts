@@ -1,120 +1,88 @@
-// app/api/appointments/route.ts
-
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { CreateAppointmentSchema } from '@/lib/validators';
-import prisma from '@/lib/database';
-import { verifyJWT, getTokenFromHeader } from '@/lib/auth';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
+import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { BookAppointmentSchema } from '@/lib/validators';
+import { getAvailableSlots } from '@/lib/scheduling';
 
-// GET /api/appointments
+function getTodayISO() {
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 10);
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const token = getTokenFromHeader(req.headers.get('authorization') || '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Não autorizado' },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyJWT(token);
-
-    if (!decoded || decoded.role !== 'PSYCHOLOGIST') {
-      return NextResponse.json(
-        { success: false, error: 'Acesso negado' },
-        { status: 403 }
-      );
+    await ensureDefaultAdmin();
+    const user = await getAuthenticatedUser(req);
+    if (!user?.psychologist) {
+      return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const date = searchParams.get('date');
 
-    const where: any = {};
-
-    if (status) where.status = status;
-    if (date) where.data = date;
-
     const appointments = await prisma.appointment.findMany({
-      where,
-      orderBy: [
-        { data: 'asc' },
-        { hora: 'asc' }
-      ],
+      where: {
+        psychologist_id: user.psychologist.id,
+        ...(status ? { status: status as any } : {}),
+        ...(date ? { data: date } : {}),
+      },
+      orderBy: [{ data: 'asc' }, { hora: 'asc' }],
     });
 
-    return NextResponse.json(
-      { success: true, data: appointments },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true, data: appointments }, { status: 200 });
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao listar agendamentos:', error);
-
-    return NextResponse.json(
-      { success: false, error: 'Erro interno do servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
 
-// POST /api/appointments
 export async function POST(req: NextRequest) {
   try {
+    await ensureDefaultAdmin();
     const body = await req.json();
+    const parsed = BookAppointmentSchema.safeParse(body);
 
-    const validation = CreateAppointmentSchema.safeParse(body);
-
-    if (!validation.success) {
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Erro de validação',
-          details: validation.error.format(),
-        },
-        { status: 400 }
+        { success: false, error: 'Erro de validação', details: parsed.error.format() },
+        { status: 400 },
       );
     }
 
-    const {
-      nome_paciente,
-      email,
-      telefone,
-      mensagem,
-      data,
-      hora,
-    } = validation.data;
+    const psychologist = await getPrimaryPsychologist();
+    if (!psychologist) {
+      return NextResponse.json({ success: false, error: 'Psicólogo não encontrado' }, { status: 404 });
+    }
 
-    // 🔥 evita conflito de horário
-    const conflict = await prisma.appointment.findFirst({
-      where: {
-        data,
-        hora,
-        status: {
-          not: 'CANCELLED',
-        },
-      },
-    });
+    const { nome, email, telefone, mensagem, data, hora } = parsed.data;
 
-    if (conflict) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Horário já está ocupado',
-        },
-        { status: 409 }
-      );
+    if (data < getTodayISO()) {
+      return NextResponse.json({ success: false, error: 'Não é possível agendar em datas passadas' }, { status: 400 });
+    }
+
+    const slots = await getAvailableSlots(data, psychologist.id);
+    if (!slots.includes(hora)) {
+      return NextResponse.json({ success: false, error: 'Horário indisponível' }, { status: 409 });
     }
 
     const appointment = await prisma.appointment.create({
       data: {
-        nome_paciente,
+        psychologist_id: psychologist.id,
+        nome_paciente: nome,
         email,
         telefone,
         mensagem,
         data,
         hora,
+        status: 'PENDING',
       },
     });
 
@@ -124,14 +92,13 @@ export async function POST(req: NextRequest) {
         data: appointment,
         message: 'Solicitação de agendamento enviada com sucesso!',
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      return createDatabaseUnavailableResponse();
+    }
     console.error('Erro ao criar agendamento:', error);
-
-    return NextResponse.json(
-      { success: false, error: 'Erro interno do servidor' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Erro interno do servidor' }, { status: 500 });
   }
 }

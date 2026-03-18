@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/database';
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { ResetPasswordSchema } from '@/lib/validators';
 import { hashPassword } from '@/lib/password';
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      password_hash: hashPassword(password),
+      password_hash: await hashPassword(password),
       reset_password_token: null,
       reset_password_expires_at: null,
     },
