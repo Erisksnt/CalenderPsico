@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { verifyToken } from '@/lib/auth';
 
-// ⚡ Helper de autenticação (podemos mover para shared depois)
+// ⚡ Helper de autenticação
 async function authenticateRequest(req: NextRequest, userId: string) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
@@ -17,7 +17,6 @@ async function authenticateRequest(req: NextRequest, userId: string) {
     return { error: 'Token inválido', status: 401 };
   }
 
-  // Verifica se é o próprio usuário
   if (decoded.userId !== userId) {
     return { error: 'Acesso negado', status: 403 };
   }
@@ -34,7 +33,6 @@ export async function GET(
   try {
     const { id } = params;
 
-    // ⚡ Autenticação
     console.time("authenticate");
     const auth = await authenticateRequest(req, id);
     if ('error' in auth) {
@@ -46,23 +44,18 @@ export async function GET(
     }
     console.timeEnd("authenticate");
 
-    // ⚡ Buscar usuário (já tem select, mas vamos refinar)
     console.time("findUser");
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
         id: true,
         email: true,
-        name: true,
         role: true,
-        createdAt: true,
-        updatedAt: true,
-        // Se precisar de dados relacionados
+        created_at: true,  // ✅ Nome correto do campo
+        updated_at: true,  // ✅ Nome correto do campo
         profile: {
           select: {
-            id: true,
-            full_name: true,
-            photo_url: true
+            full_name: true
           }
         }
       },
@@ -77,9 +70,19 @@ export async function GET(
       );
     }
 
+    // Transformar para camelCase se o frontend esperar assim
+    const userData = {
+      id: user.id,
+      email: user.email,
+      name: user.profile?.full_name || null,
+      role: user.role,
+      createdAt: user.created_at,  // ← Transformação opcional
+      updatedAt: user.updated_at   // ← Transformação opcional
+    };
+
     console.timeEnd(`GET /api/users/${params.id}`);
     return NextResponse.json(
-      { success: true, data: user },
+      { success: true, data: userData },
       { status: 200 }
     );
   } catch (error: any) {

@@ -2,73 +2,13 @@
 
 ## 🔑 Autenticação
 
-### POST /api/auth/register
-
-Registrar novo usuário.
-
-**Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "senha123",
-  "role": "PSYCHOLOGIST|PATIENT",
-  "name": "Seu Nome",
-  "phone": "(11) 99999-9999",
-  "registration_number": "06/123456"  // apenas para psicólogos
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "clx...",
-      "email": "user@example.com",
-      "role": "PSYCHOLOGIST"
-    }
-  },
-  "message": "Conta criada com sucesso!"
-}
-```
-
----
 
 ### POST /api/auth/login
 
 Autenticar usuário.
 
-**Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "senha123"
-}
-```
-
 **Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "clx...",
-      "email": "user@example.com",
-      "role": "PSYCHOLOGIST",
-      "psychologist": {
-        "id": "clx...",
-        "name": "Dr. João",
-        "registration_number": "06/123456"
-      }
-    },
-    "token": "eyJh..."
-  },
-  "message": "Login realizado com sucesso!"
-}
-```
 
----
 
 ### POST /api/auth/logout
 
@@ -339,17 +279,6 @@ Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-**Body:**
-```json
-{
-  "name": "Sessão Individual",
-  "description": "Sessão de terapia com duração de 1 hora",
-  "duration": 60,
-  "price": 100.00,  // em reais
-  "color": "#3B82F6"
-}
-```
-
 **Response (201):** Retorna objeto service criado
 
 ---
@@ -390,29 +319,6 @@ Deletar serviço.
 ## 👥 Psicólogos
 
 ### GET /api/psychologists
-
-Listar todos os psicólogos (público).
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "clx...",
-      "name": "Dr. João Silva",
-      "bio": "Especialista em ansiedade",
-      "specialties": ["ansiedade", "depressão"],
-      "registration_number": "06/123456",
-      "phone": "(11) 99999-9999",
-      "created_at": "2024-01-10T10:00:00Z",
-      "updated_at": "2024-01-10T10:00:00Z",
-      "services": [ /* array de services */ ],
-      "availabilities": [ /* array de availabilities */ ]
-    }
-  ]
-}
-```
 
 ---
 
@@ -506,44 +412,4 @@ Cada endpoint tem limite de requisições:
 Content-Type: application/json
 Authorization: Bearer <token>
 Accept: application/json
-```
-
----
-
-## 🧪 Exemplos de Uso com cURL
-
-### Registrar
-```bash
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "psico@test.com",
-    "password": "senha123",
-    "role": "PSYCHOLOGIST",
-    "name": "Dr. João",
-    "registration_number": "06/123456"
-  }'
-```
-
-### Login
-```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "psico@test.com",
-    "password": "senha123"
-  }'
-```
-
-### Criar Agendamento
-```bash
-curl -X POST http://localhost:3000/api/appointments \
-  -H "Content-Type: application/json" \
-  -d '{
-    "service_id": "clx...",
-    "patient_name": "João Silva",
-    "patient_email": "joao@example.com",
-    "patient_phone": "11999999999",
-    "start_time": "2024-02-14T14:00:00Z"
-  }'
 ```

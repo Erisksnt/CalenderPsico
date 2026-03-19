@@ -194,19 +194,6 @@ patients
 
 ## 🧪 Testar Localmente
 
-### Criar psicólogo de teste
-```bash
-Email: psico@test.com
-Senha: senha123
-CRP: 06/123456
-```
-
-### Criar paciente de teste
-```bash
-Email: paciente@test.com
-Senha: senha123
-```
-
 ## 🔄 Fluxo Típico de Uso
 
 1. **Psicólogo**: Registra-se → Cria serviços → Define horários

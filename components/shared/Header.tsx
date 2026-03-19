@@ -16,6 +16,8 @@ export default function Header() {
     pathname !== '/admin/reset-password'
   );
 
+  const isPublicPage = !pathname?.startsWith('/admin');
+
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
@@ -36,11 +38,8 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-6 text-sm font-medium text-[#4d4d4d]">
-          <Link href="/admin/login" className="transition hover:text-[#C2183A]">
-            Login
-          </Link>
-
           {isAdminSection ? (
+            // ✅ ÁREA ADMIN LOGADO - só mostra o botão de logout
             <button
               type="button"
               onClick={handleLogout}
@@ -49,14 +48,20 @@ export default function Header() {
             >
               {loggingOut ? 'Saindo...' : 'Encerrar sessão'}
             </button>
-          ) : (
-            <Link
-              href="/agendar"
-              className="rounded-full bg-[#C2183A] px-5 py-2 text-white tracking-wide shadow-md transition hover:bg-[#a0162f]"
-            >
-              Agendar pré-consulta
-            </Link>
-          )}
+          ) : isPublicPage ? (
+            // ✅ PÁGINAS PÚBLICAS - mostra os dois links
+            <>
+              <Link href="/admin/login" className="transition hover:text-[#C2183A]">
+                Login
+              </Link>
+              <Link
+                href="/agendar"
+                className="rounded-full bg-[#C2183A] px-5 py-2 text-white tracking-wide shadow-md transition hover:bg-[#a0162f]"
+              >
+                Agendar pré-consulta
+              </Link>
+            </>
+          ) : null}
         </div>
       </nav>
     </header>

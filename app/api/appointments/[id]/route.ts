@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UpdateAppointmentSchema } from '@/lib/validators';
-import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database'; // ⚡ Adicionar imports de erro
+import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { verifyJWT, getTokenFromHeader } from '@/lib/auth';
-import { createAuditLog } from '@/lib/database';
+// import { createAuditLog } from '@/lib/database'; // 🔥 COMENTADO - legacy
 
 interface RouteParams {
   params: {
@@ -12,13 +12,12 @@ interface RouteParams {
 
 // GET /api/appointments/[id]
 export async function GET(req: NextRequest, { params }: RouteParams) {
-  console.time(`GET /api/appointments/${params.id}`); // Opcional
+  console.time(`GET /api/appointments/${params.id}`);
   
   try {
     const { id } = params;
 
-    console.time("findAppointment"); // Opcional
-    // ⚡ OTIMIZAÇÃO 1: Selecionar apenas campos necessários
+    console.time("findAppointment");
     const appointment = await prisma.appointment.findUnique({
       where: { id },
       select: {
@@ -47,7 +46,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         }
       }
     });
-    console.timeEnd("findAppointment"); // Opcional
+    console.timeEnd("findAppointment");
 
     if (!appointment) {
       console.timeEnd(`GET /api/appointments/${params.id}`);
@@ -71,12 +70,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PUT /api/appointments/[id]
 export async function PUT(req: NextRequest, { params }: RouteParams) {
-  console.time(`PUT /api/appointments/${params.id}`); // Opcional
+  console.time(`PUT /api/appointments/${params.id}`);
   
   try {
-    console.time("verifyToken"); // Opcional
+    console.time("verifyToken");
     const token = getTokenFromHeader(req.headers.get('authorization') || '');
     if (!token) {
       console.timeEnd(`PUT /api/appointments/${params.id}`);
@@ -88,15 +86,14 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       console.timeEnd(`PUT /api/appointments/${params.id}`);
       return NextResponse.json({ success: false, error: 'Token inválido' }, { status: 401 });
     }
-    console.timeEnd("verifyToken"); // Opcional
+    console.timeEnd("verifyToken");
 
     const { id } = params;
     
-    // ⚡ OTIMIZAÇÃO 2: Buscar apenas o necessário para validação
-    console.time("findExisting"); // Opcional
+    console.time("findExisting");
     const appointment = await prisma.appointment.findUnique({ 
       where: { id },
-      select: {  // ✅ Buscar só o que precisa para o audit log
+      select: {
         id: true,
         nome_paciente: true,
         status: true,
@@ -104,7 +101,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         hora: true
       }
     });
-    console.timeEnd("findExisting"); // Opcional
+    console.timeEnd("findExisting");
     
     if (!appointment) {
       console.timeEnd(`PUT /api/appointments/${params.id}`);
@@ -123,12 +120,11 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     const { status } = validation.data;
 
-    // ⚡ OTIMIZAÇÃO 3: Atualizar e selecionar apenas campos necessários
-    console.time("updateAppointment"); // Opcional
+    console.time("updateAppointment");
     const updatedAppointment = await prisma.appointment.update({
       where: { id },
       data: { ...(status && { status }) },
-      select: {  // ✅ Já está bom, mantém
+      select: {
         id: true,
         nome_paciente: true,
         email: true,
@@ -139,13 +135,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
         status: true,
       },
     });
-    console.timeEnd("updateAppointment"); // Opcional
-
-    // ⚡ OTIMIZAÇÃO 4: Audit log em background (não blocker)
-    console.time("auditLog"); // Opcional
-    createAuditLog('Appointment', id, 'UPDATE', decoded.userId, appointment, updatedAppointment)
-      .catch(err => console.error('Erro no audit log:', err));
-    console.timeEnd("auditLog"); // Opcional
+    console.timeEnd("updateAppointment");
 
     console.timeEnd(`PUT /api/appointments/${params.id}`);
     return NextResponse.json({
@@ -165,12 +155,11 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/appointments/[id]
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
-  console.time(`DELETE /api/appointments/${params.id}`); // Opcional
+  console.time(`DELETE /api/appointments/${params.id}`);
   
   try {
-    console.time("verifyToken"); // Opcional
+    console.time("verifyToken");
     const token = getTokenFromHeader(req.headers.get('authorization') || '');
     if (!token) {
       console.timeEnd(`DELETE /api/appointments/${params.id}`);
@@ -182,12 +171,11 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       console.timeEnd(`DELETE /api/appointments/${params.id}`);
       return NextResponse.json({ success: false, error: 'Token inválido' }, { status: 401 });
     }
-    console.timeEnd("verifyToken"); // Opcional
+    console.timeEnd("verifyToken");
 
     const { id } = params;
     
-    // ⚡ OTIMIZAÇÃO 5: Buscar apenas o necessário
-    console.time("findExisting"); // Opcional
+    console.time("findExisting");
     const appointment = await prisma.appointment.findUnique({ 
       where: { id },
       select: {
@@ -198,19 +186,18 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         hora: true
       }
     });
-    console.timeEnd("findExisting"); // Opcional
+    console.timeEnd("findExisting");
     
     if (!appointment) {
       console.timeEnd(`DELETE /api/appointments/${params.id}`);
       return NextResponse.json({ success: false, error: 'Agendamento não encontrado' }, { status: 404 });
     }
 
-    // ⚡ OTIMIZAÇÃO 6: Cancelar e selecionar apenas necessário
-    console.time("cancelAppointment"); // Opcional
+    console.time("cancelAppointment");
     const cancelledAppointment = await prisma.appointment.update({
       where: { id },
       data: { status: 'CANCELLED' },
-      select: {  // ✅ Já está bom
+      select: {
         id: true,
         nome_paciente: true,
         email: true,
@@ -221,13 +208,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         status: true,
       },
     });
-    console.timeEnd("cancelAppointment"); // Opcional
-
-    // ⚡ OTIMIZAÇÃO 7: Audit log em background
-    console.time("auditLog"); // Opcional
-    createAuditLog('Appointment', id, 'CANCEL', decoded.userId, appointment, cancelledAppointment)
-      .catch(err => console.error('Erro no audit log:', err));
-    console.timeEnd("auditLog"); // Opcional
+    console.timeEnd("cancelAppointment");
 
     console.timeEnd(`DELETE /api/appointments/${params.id}`);
     return NextResponse.json({

@@ -2,10 +2,24 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'thais_snt@psicologia.com.br').trim().toLowerCase();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'T34mo%1104';
+
+// 🔥 VERIFICAR SE AS VARIÁVEIS EXISTEM
+if (!process.env.ADMIN_EMAIL) {
+  console.error('❌ ERRO: ADMIN_EMAIL não definido no .env');
+  process.exit(1);
+}
+
+if (!process.env.ADMIN_PASSWORD) {
+  console.error('❌ ERRO: ADMIN_PASSWORD não definido no .env');
+  process.exit(1);
+}
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL.trim().toLowerCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 async function main() {
+  console.log('🌱 Criando admin padrão...');
+  
   const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
 
   const user = await prisma.user.upsert({
@@ -35,6 +49,8 @@ async function main() {
     update: {},
     create: { user_id: user.id },
   });
+
+  console.log('✅ Admin criado com sucesso!');
 }
 
 main()
@@ -42,7 +58,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (error) => {
-    console.error(error);
+    console.error('❌ Erro no seed:', error);
     await prisma.$disconnect();
     process.exit(1);
   });

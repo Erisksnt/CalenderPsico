@@ -59,6 +59,7 @@ export async function getAvailableSlots(date: string, psychologistId?: string) {
 
   const day_of_week = DAY_MAP[new Date(`${date}T00:00:00`).getDay()];
 
+  // 🔥 1. Buscar configuração do dia
   const config = await prisma.availability.findUnique({
     where: {
       psychologist_id_day_of_week: {
@@ -74,7 +75,16 @@ export async function getAvailableSlots(date: string, psychologistId?: string) {
     },
   });
 
-  // ✅ Busca TODOS os agendamentos
+  // 🔥 2. VERIFICAR se existe configuração e se não está bloqueado
+  if (!config) {
+    return []; // Sem configuração = sem horários
+  }
+
+  if (config.is_blocked) {
+    return []; // Dia bloqueado = sem horários
+  }
+
+  // ✅ 3. Agora sim, buscar agendamentos (só se tiver configuração)
   const appointments = await prisma.appointment.findMany({
     where: {
       psychologist_id: targetPsychologistId,
@@ -83,7 +93,7 @@ export async function getAvailableSlots(date: string, psychologistId?: string) {
     select: { hora: true, status: true },
   });
   
-  // 🔥 Criar Set APENAS com horários ocupados (excluindo cancelados/concluídos)
+  // 🔥 4. Criar Set APENAS com horários ocupados (excluindo cancelados/concluídos)
   const busyHours = new Set(
     appointments
       .filter(apt => apt.status !== 'CANCELLED' && apt.status !== 'COMPLETED')

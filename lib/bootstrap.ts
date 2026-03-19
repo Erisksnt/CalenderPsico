@@ -1,9 +1,6 @@
 import prisma from './database';
 import { hashPassword, verifyPassword } from './password';
 
-export const DEFAULT_ADMIN_EMAIL = 'thais_snt@psicologia.com.br';
-export const DEFAULT_ADMIN_PASSWORD = 'T34mo%1104';
-
 const DEFAULT_PROFILE = {
   full_name: 'Thaís Santos',
   professional_bio:
@@ -15,8 +12,19 @@ const DEFAULT_PROFILE = {
 };
 
 export async function ensureDefaultAdmin() {
-  const email = (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).trim().toLowerCase();
-  const password = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
+  // 🔥 VERIFICAR SE AS VARIÁVEIS EXISTEM (sem fallback)
+  if (!process.env.ADMIN_EMAIL) {
+    console.error('❌ ADMIN_EMAIL não configurado no ambiente');
+    return;
+  }
+
+  if (!process.env.ADMIN_PASSWORD) {
+    console.error('❌ ADMIN_PASSWORD não configurado no ambiente');
+    return;
+  }
+
+  const email = process.env.ADMIN_EMAIL.trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD;
 
   let user = await prisma.user.findUnique({ where: { email } });
 
@@ -59,20 +67,12 @@ export async function ensureDefaultAdmin() {
   return { user, psychologist };
 }
 
-// ✅ VERSÃO OTIMIZADA - sem ensureDefaultAdmin e com select
 export async function getPrimaryPsychologist() {
-  // 🔥 REMOVIDO: await ensureDefaultAdmin();
-
   return prisma.psychologist.findFirst({
     orderBy: { created_at: 'asc' },
-    select: {  // ⚡ Select otimizado
+    select: {
       id: true,
       user_id: true,
-      name: true,
-      bio: true,
-      registration_number: true,
-      phone: true,
-      specialties: true,
       user: {
         select: {
           profile: {

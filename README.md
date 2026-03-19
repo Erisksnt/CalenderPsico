@@ -37,10 +37,6 @@ Sistema simples de portfólio + agenda pública para um único psicólogo.
    npm run dev
    ```
 
-## Admin padrão
-- Email: `thais_snt@psicologia.com.br`
-- Senha: `T34mo%1104`
-
 ## Endpoints principais
 ### Públicos
 - `GET /api/public/profile`
