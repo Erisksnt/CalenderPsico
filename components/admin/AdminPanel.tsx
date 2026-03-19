@@ -28,12 +28,46 @@ const buildEmptyAvailability = () =>
 
 type AvailabilityFormItem = ReturnType<typeof buildEmptyAvailability>[number];
 
-function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
+// 🔥 NOVA FUNÇÃO: Comprimir imagem antes de converter para base64
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
     reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;  // Tamanho ideal para foto de perfil
+        const MAX_HEIGHT = 800;
+        
+        let width = img.width;
+        let height = img.height;
+        
+        // Redimensionar mantendo proporção
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Qualidade 0.8 (80%) - equilíbrio perfeito entre qualidade e tamanho
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
   });
 }
 
@@ -77,7 +111,6 @@ function formatApiError(payload: unknown, status: number) {
   return `Erro ${status}`;
 }
 
-
 async function safeFetchJson<T>(
   url: string,
   init?: RequestInit
@@ -88,22 +121,8 @@ async function safeFetchJson<T>(
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
-
       const error = formatApiError(payload, response.status);
       return { ok: false, status: response.status, data: payload, error };
-
-      const errorData =
-        payload && typeof payload === 'object' && 'error' in payload
-          ? String((payload as { error: string }).error)
-          : `Erro ${response.status}`;
-
-      return {
-        ok: false,
-        status: response.status,
-        data: payload,
-        error: errorData,
-      };
-
     }
 
     return {
@@ -130,14 +149,13 @@ export default function AdminPanel() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isUploading, setIsUploading] = useState(false); // 🔥 Previne múltiplos envios
 
-  // 🔥 PEGAR O TOKEN DO LOCALSTORAGE
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   async function loadAll() {
     setMessage(null);
 
-    // 🔥 HEADERS COM TOKEN
     const headers = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -187,12 +205,12 @@ export default function AdminPanel() {
   }
 
   useEffect(() => {
-  if (token) {
-    void loadAll();
-  } else {
-    window.location.href = '/admin/login';  // Redireciona!
-  }
-}, [token]);
+    if (token) {
+      void loadAll();
+    } else {
+      window.location.href = '/admin/login';
+    }
+  }, [token]);
 
   useEffect(() => {
     if (photoFile) {
@@ -204,29 +222,48 @@ export default function AdminPanel() {
   }, [photoFile, profile.photo_url]);
 
   async function saveProfile() {
-    const specialties = profile.specialties.split(',').map((s) => s.trim()).filter(Boolean);
-    const photoUrl = photoFile ? await fileToDataUrl(photoFile) : profile.photo_url;
-    
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    };
-    
-    const result = await safeFetchJson('/api/admin/profile', {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({ ...profile, specialties, photo_url: photoUrl }),
-    });
+    if (isUploading) return; // 🔥 Previne envio duplicado
+    setIsUploading(true);
+    setMessage(null);
 
-    if (!result.ok) {
-      setMessage({ type: 'error', text: `Não foi possível salvar o perfil: ${result.error}` });
-      return;
+    try {
+      const specialties = profile.specialties.split(',').map((s) => s.trim()).filter(Boolean);
+      
+      // 🔥 USAR A FUNÇÃO DE COMPRESSÃO em vez da conversão direta
+      let photoUrl = profile.photo_url;
+      if (photoFile) {
+        try {
+          photoUrl = await compressImage(photoFile);
+        } catch (error) {
+          setMessage({ type: 'error', text: 'Erro ao processar imagem' });
+          setIsUploading(false);
+          return;
+        }
+      }
+      
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      
+      const result = await safeFetchJson('/api/admin/profile', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ ...profile, specialties, photo_url: photoUrl }),
+      });
+
+      if (!result.ok) {
+        setMessage({ type: 'error', text: `Não foi possível salvar o perfil: ${result.error}` });
+        return;
+      }
+
+      await loadAll();
+      setEditingProfile(false);
+      setPhotoFile(null);
+      setMessage({ type: 'success', text: 'Perfil salvo com sucesso.' });
+    } finally {
+      setIsUploading(false);
     }
-
-    await loadAll();
-    setEditingProfile(false);
-    setPhotoFile(null);
-    setMessage({ type: 'success', text: 'Perfil salvo com sucesso.' });
   }
 
   async function saveAvailability() {
@@ -334,10 +371,11 @@ export default function AdminPanel() {
             <textarea className="border p-2 rounded w-full" placeholder="Método de trabalho" value={profile.work_method} onChange={(e) => setProfile({ ...profile, work_method: e.target.value })} />
             <input className="border p-2 rounded w-full" placeholder="Especialidades separadas por vírgula" value={profile.specialties} onChange={(e) => setProfile({ ...profile, specialties: e.target.value })} />
             <button
-              className="inline-flex items-center justify-center rounded-full bg-[#C2183A] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#a0162f]"
               onClick={saveProfile}
+              disabled={isUploading}
+              className="inline-flex items-center justify-center rounded-full bg-[#C2183A] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#a0162f] disabled:opacity-50"
             >
-              Salvar perfil
+              {isUploading ? 'Salvando...' : 'Salvar perfil'}
             </button>
           </div>
         ) : (
@@ -366,6 +404,7 @@ export default function AdminPanel() {
         )}
       </section>
 
+      {/* O resto do componente permanece IGUAL */}
       <section className="bg-white border rounded p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-bold text-xl text-[#101010]">Disponibilidade de pré-consulta</h2>
