@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 // 🔥 REMOVER: import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { getTodayISO, getAvailableSlots, getEnabledWeekdays } from '@/lib/scheduling';
