@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { AdminLoginSchema } from '@/lib/validators';
-// ✅ REMOVIDO: import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { verifyPassword, createToken, buildAuthCookie } from '@/lib/auth';
 import { isDatabaseConnectionError, createDatabaseUnavailableResponse } from '@/lib/database';
 import prisma from '@/lib/database';
@@ -14,22 +13,30 @@ export async function POST(request: Request) {
 
     if (!parsed.success) {
       console.timeEnd("POST /api/admin/login");
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      
+      // 🔥 CORREÇÃO: Pegar o primeiro erro de forma legível
+      const errors = parsed.error.flatten();
+      const firstError = 
+        errors.fieldErrors.email?.[0] || 
+        errors.fieldErrors.password?.[0] || 
+        'Dados inválidos';
+      
+      return NextResponse.json(
+        { error: firstError },  // ← AGORA É UMA STRING!
+        { status: 400 }
+      );
     }
-
-    // ✅ REMOVIDO: await ensureDefaultAdmin();
 
     const email = parsed.data.email.trim().toLowerCase();
     
     console.time("findUser");
-    // ⚡ Buscar também o profile para incluir no token
     const user = await prisma.user.findUnique({
       where: { email },
       include: { 
         psychologist: {
           select: { id: true }
         },
-        profile: {  // ✅ Incluir profile!
+        profile: {
           select: {
             id: true,
             full_name: true,
@@ -55,7 +62,6 @@ export async function POST(request: Request) {
     }
 
     console.time("createToken");
-    // ✅ AGORA com todos os dados no payload!
     const token = createToken({
       userId: user.id,
       email: user.email,
@@ -65,7 +71,6 @@ export async function POST(request: Request) {
       userProfile: user.profile ? {
         id: user.profile.id,
         full_name: user.profile.full_name,
-        //photo_url: user.profile.photo_url
       } : undefined
     });
     console.timeEnd("createToken");
@@ -80,7 +85,7 @@ export async function POST(request: Request) {
           id: user.id,
           email: user.email,
           role: user.role,
-          name: user.profile?.full_name,  // ✅ Opcional: incluir na resposta
+          name: user.profile?.full_name,
         },
       },
       {

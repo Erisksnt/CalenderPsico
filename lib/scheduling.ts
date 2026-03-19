@@ -10,13 +10,11 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
 async function getCachedPsychologistId() {
   const now = Date.now();
-  
-  // Se o cache ainda é válido, retorna
+
   if (cachedPsychologistId && (now - lastFetch) < CACHE_TTL) {
     return cachedPsychologistId;
   }
   
-  // Busca do banco apenas o ID
   const psychologist = await prisma.psychologist.findFirst({
     orderBy: { created_at: 'asc' },
     select: { id: true }
@@ -30,8 +28,6 @@ async function getCachedPsychologistId() {
 
 async function resolvePsychologistId(psychologistId?: string) {
   if (psychologistId) return psychologistId;
-  
-  // ✅ Usa cache em vez de chamar o banco toda vez
   return getCachedPsychologistId();
 }
 
@@ -62,8 +58,7 @@ export async function getAvailableSlots(date: string, psychologistId?: string) {
   if (!targetPsychologistId) return [];
 
   const day_of_week = DAY_MAP[new Date(`${date}T00:00:00`).getDay()];
-  
-  // ⚡ Buscar apenas os campos necessários
+
   const config = await prisma.availability.findUnique({
     where: {
       psychologist_id_day_of_week: {
@@ -71,7 +66,7 @@ export async function getAvailableSlots(date: string, psychologistId?: string) {
         day_of_week,
       },
     },
-    select: {  // ✅ Só o que precisa
+    select: {
       is_blocked: true,
       start_time: true,
       end_time: true,
@@ -79,18 +74,22 @@ export async function getAvailableSlots(date: string, psychologistId?: string) {
     },
   });
 
-  if (!config || config.is_blocked) return [];
-
+  // ✅ Busca TODOS os agendamentos
   const appointments = await prisma.appointment.findMany({
     where: {
       psychologist_id: targetPsychologistId,
       data: date,
-      status: { in: ['PENDING', 'CONFIRMED'] },
     },
-    select: { hora: true }, // ✅ Já está otimizado
+    select: { hora: true, status: true },
   });
+  
+  // 🔥 Criar Set APENAS com horários ocupados (excluindo cancelados/concluídos)
+  const busyHours = new Set(
+    appointments
+      .filter(apt => apt.status !== 'CANCELLED' && apt.status !== 'COMPLETED')
+      .map(apt => apt.hora)
+  );
 
-  const busyHours = new Set(appointments.map((appointment) => appointment.hora));
   const slots: string[] = [];
   const startMinutes = toMinutes(config.start_time);
   const endMinutes = toMinutes(config.end_time);
@@ -120,7 +119,7 @@ export async function getEnabledWeekdays(psychologistId?: string) {
       psychologist_id: targetPsychologistId,
       is_blocked: false,
     },
-    select: { day_of_week: true }, // ✅ Já está otimizado
+    select: { day_of_week: true },
   });
 
   return Array.from(new Set(rows.map((row) => DAY_MAP.indexOf(row.day_of_week)))).sort((a, b) => a - b);

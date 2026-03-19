@@ -190,7 +190,7 @@ export default function AdminPanel() {
   if (token) {
     void loadAll();
   } else {
-    window.location.href = '/admin/login';  // 🔥 Redireciona!
+    window.location.href = '/admin/login';  // Redireciona!
   }
 }, [token]);
 
@@ -443,6 +443,8 @@ export default function AdminPanel() {
           {doneAppointments.map((a) => (
             <div key={a.id} className="border rounded p-3 space-y-1 bg-green-50 border-green-200">
               <p className="font-semibold">{a.nome_paciente}</p>
+              <p className="text-sm">Email: {a.email}</p>
+              <p className="text-sm">Telefone: {a.telefone}</p>
               <p className="text-sm">Data: {a.data} às {a.hora}</p>
               <p className="text-sm">Status: {statusLabel[a.status]}</p>
             </div>
@@ -455,6 +457,8 @@ export default function AdminPanel() {
           {cancelledAppointments.map((a) => (
             <div key={a.id} className="border rounded p-3 space-y-1 bg-red-50 border-red-200">
               <p className="font-semibold">{a.nome_paciente}</p>
+              <p className="text-sm">Email: {a.email}</p>
+              <p className="text-sm">Telefone: {a.telefone}</p>
               <p className="text-sm">Data: {a.data} às {a.hora}</p>
               <p className="text-sm">Status: {statusLabel[a.status]}</p>
             </div>

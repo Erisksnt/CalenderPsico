@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma, { isDatabaseConnectionError, createDatabaseUnavailableResponse } from '@/lib/database';
-// 🔥 REMOVER: import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { BookAppointmentSchema } from '@/lib/validators';
 import { getTodayISO, getAvailableSlots } from '@/lib/scheduling';
@@ -11,8 +10,6 @@ export async function GET(req: NextRequest) {
   console.time("GET /api/appointments");
   
   try {
-    // 🔥 REMOVER: await ensureDefaultAdmin();
-    
     console.time("getAuthenticatedUser");
     const user = await getAuthenticatedUser(req);
     console.timeEnd("getAuthenticatedUser");
@@ -34,8 +31,6 @@ export async function GET(req: NextRequest) {
         ...(date ? { data: date } : {}),
       },
       orderBy: [{ data: 'asc' }, { hora: 'asc' }],
-      // 🔥 REMOVER esta linha: log: ['query'],
-      // ⚡ ADICIONAR select
       select: {
         id: true,
         nome_paciente: true,
@@ -67,8 +62,6 @@ export async function POST(req: NextRequest) {
   console.time("POST /api/appointments");
   
   try {
-    // 🔥 REMOVER: await ensureDefaultAdmin();
-    
     const body = await req.json();
     const parsed = BookAppointmentSchema.safeParse(body);
 
@@ -84,7 +77,7 @@ export async function POST(req: NextRequest) {
     console.time("findPsychologist");
     const psychologist = await prisma.psychologist.findFirst({
       orderBy: { created_at: 'asc' },
-      select: { id: true } // ✅ só precisa do ID
+      select: { id: true }
     });
     console.timeEnd("findPsychologist");
     
@@ -109,9 +102,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Horário indisponível' }, { status: 409 });
     }
 
+    // 🔥 VERIFICAÇÃO EXTRA DE SEGURANÇA - CORRIGIDA
+    console.time("finalCheck");
+    const existingAppointment = await prisma.appointment.findFirst({
+      where: {
+        psychologist_id: psychologist.id,
+        data: data,
+        hora: hora,
+        // ✅ Só bloqueia se for PENDING ou CONFIRMED
+        status: {
+          in: ['PENDING', 'CONFIRMED']
+        }
+      }
+    });
+    console.timeEnd("finalCheck");
+
+    if (existingAppointment) {
+      console.log('❌ CONFLITO: Agendamento ativo já existe', existingAppointment);
+      console.timeEnd("POST /api/appointments");
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Horário indisponível' 
+      }, { status: 409 });
+    }
+
+    // 🔥 SUBSTITUÍDO: create por upsert
     console.time("createAppointment");
-    const appointment = await prisma.appointment.create({
-      data: {
+    const appointment = await prisma.appointment.upsert({
+      where: {
+        // Usa a unique constraint para encontrar
+        psychologist_id_data_hora: {
+          psychologist_id: psychologist.id,
+          data: data,
+          hora: hora
+        }
+      },
+      // Se existir (caso cancelado), atualiza para PENDING
+      update: {
+        nome_paciente: nome,
+        email,
+        telefone,
+        mensagem,
+        status: 'PENDING',
+        updated_at: new Date()
+      },
+      // Se não existir, cria novo
+      create: {
         psychologist_id: psychologist.id,
         nome_paciente: nome,
         email,
@@ -121,7 +157,6 @@ export async function POST(req: NextRequest) {
         hora,
         status: 'PENDING',
       },
-      // ⚡ Retornar apenas o necessário
       select: {
         id: true,
         nome_paciente: true,
@@ -144,6 +179,7 @@ export async function POST(req: NextRequest) {
 📅 Você receberá a confirmação da agenda por e-mail ou ligação telefônica.
 
 🤗 Estamos felizes em te acompanhar nesse início da sua jornada!`
+
       },
       { status: 201 },
     );

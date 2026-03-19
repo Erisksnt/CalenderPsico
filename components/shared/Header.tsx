@@ -22,6 +22,7 @@ export default function Header() {
     try {
       await fetch('/api/admin/logout', { method: 'POST' });
     } finally {
+      localStorage.removeItem('token');
       router.push('/admin/login');
       setLoggingOut(false);
     }
@@ -35,8 +36,8 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-6 text-sm font-medium text-[#4d4d4d]">
-          <Link href="/admin" className="transition hover:text-[#C2183A]">
-            Admin
+          <Link href="/admin/login" className="transition hover:text-[#C2183A]">
+            Login
           </Link>
 
           {isAdminSection ? (
