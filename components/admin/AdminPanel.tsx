@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -133,13 +131,22 @@ export default function AdminPanel() {
   const [photoPreview, setPhotoPreview] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // 🔥 PEGAR O TOKEN DO LOCALSTORAGE
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
   async function loadAll() {
     setMessage(null);
 
+    // 🔥 HEADERS COM TOKEN
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+
     const [profileRes, availabilityRes, appointmentsRes] = await Promise.all([
-      safeFetchJson<Record<string, unknown> | null>('/api/admin/profile'),
-      safeFetchJson<AvailabilityFormItem[]>('/api/admin/availability'),
-      safeFetchJson<Appointment[]>('/api/admin/appointments'),
+      safeFetchJson<Record<string, unknown> | null>('/api/admin/profile', { headers }),
+      safeFetchJson<AvailabilityFormItem[]>('/api/admin/availability', { headers }),
+      safeFetchJson<Appointment[]>('/api/admin/appointments', { headers }),
     ]);
 
     if (profileRes.ok && profileRes.data) {
@@ -180,8 +187,12 @@ export default function AdminPanel() {
   }
 
   useEffect(() => {
+  if (token) {
     void loadAll();
-  }, []);
+  } else {
+    window.location.href = '/admin/login';  // 🔥 Redireciona!
+  }
+}, [token]);
 
   useEffect(() => {
     if (photoFile) {
@@ -195,8 +206,15 @@ export default function AdminPanel() {
   async function saveProfile() {
     const specialties = profile.specialties.split(',').map((s) => s.trim()).filter(Boolean);
     const photoUrl = photoFile ? await fileToDataUrl(photoFile) : profile.photo_url;
+    
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+    
     const result = await safeFetchJson('/api/admin/profile', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      method: 'PUT',
+      headers,
       body: JSON.stringify({ ...profile, specialties, photo_url: photoUrl }),
     });
 
@@ -212,8 +230,14 @@ export default function AdminPanel() {
   }
 
   async function saveAvailability() {
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+    
     const result = await safeFetchJson('/api/admin/availability', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      method: 'PUT',
+      headers,
       body: JSON.stringify({ items: availability.map((item) => ({ ...item, session_duration: Number(item.session_duration) })) }),
     });
 
@@ -228,8 +252,14 @@ export default function AdminPanel() {
   }
 
   async function updateStatus(id: string, status: 'CONFIRMED' | 'CANCELLED') {
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+    
     const result = await safeFetchJson(`/api/admin/appointments/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH',
+      headers,
       body: JSON.stringify({ status }),
     });
 

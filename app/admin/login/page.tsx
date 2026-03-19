@@ -17,6 +17,8 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
+      console.log('📤 Enviando login...');
+      
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -24,13 +26,22 @@ export default function AdminLoginPage() {
       });
 
       const data = await response.json();
+      console.log('📥 Resposta:', { status: response.status, data });
 
       if (response.ok) {
+        console.log('✅ Login OK, salvando token...');
+        
+        // 🔥 LINHA IMPORTANTE - SALVAR O TOKEN!
+        localStorage.setItem('token', data.token);
+        
+        console.log('✅ Token salvo, redirecionando...');
         router.push('/admin');
       } else {
+        console.log('❌ Login falhou:', data.error);
         setError(data?.error || 'Falha no login');
       }
-    } catch {
+    } catch (error) {
+      console.error('🔥 Erro:', error);
       setError('Erro de conexão. Tente novamente.');
     } finally {
       setLoading(false);
@@ -39,7 +50,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="max-w-md mx-auto bg-white p-6 border rounded space-y-4">
-      <h1 className="text-2xl font-bold text-[#101010]">Login do psicólogo</h1>
+      <h1 className="text-2xl font-bold text-[#101010]">Login do Administrador</h1>
 
       <form onSubmit={submit} className="space-y-3">
         <input
@@ -75,7 +86,7 @@ export default function AdminLoginPage() {
         <Link className="text-[#C2183A] hover:text-[#a0162f]" href="/admin/forgot-password">
           Esqueceu a senha?
         </Link>
-        <p>Acesso exclusivo para a psicóloga responsável</p>
+        <p>Acesso exclusivo para administradores</p>
       </div>
     </div>
   );

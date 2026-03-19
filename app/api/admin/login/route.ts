@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       userProfile: user.profile ? {
         id: user.profile.id,
         full_name: user.profile.full_name,
-        photo_url: user.profile.photo_url
+        //photo_url: user.profile.photo_url
       } : undefined
     });
     console.timeEnd("createToken");

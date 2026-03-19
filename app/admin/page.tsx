@@ -3,8 +3,13 @@ import { getAdminFromServerCookie } from '@/lib/auth';
 import AdminPanel from '@/components/admin/AdminPanel';
 
 export default async function AdminPage() {
+  
+  // ✅ Tenta verificar com cookie (pode falhar)
   const admin = await getAdminFromServerCookie();
-  if (!admin) redirect('/admin/login');
+  
+  // 🔥 Se não tiver cookie, ainda assim renderiza o painel
+  // O AdminPanel vai verificar o token no cliente
+  // if (!admin) redirect('/admin/login');  ← COMENTADO!
 
   return (
     <div className="container mx-auto px-4">
