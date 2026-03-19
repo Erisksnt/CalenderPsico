@@ -1,32 +1,12 @@
-import { existsSync } from 'fs';
-import path from 'path';
-import dotenv from 'dotenv';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
 
 declare global {
   // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
-  // eslint-disable-next-line no-var
-  var prismaEnvLoaded: boolean | undefined;
-}
-
-function loadProjectEnv() {
-  if (global.prismaEnvLoaded || process.env.NODE_ENV === 'production') {
-    return;
-  }
-
-  const envPath = path.join(process.cwd(), '.env');
-  if (existsSync(envPath)) {
-    dotenv.config({ path: envPath, override: true });
-  }
-
-  global.prismaEnvLoaded = true;
 }
 
 function getPrismaInstance() {
-  loadProjectEnv();
-
   if (!global.prisma) {
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL is required to instantiate PrismaClient');
@@ -66,14 +46,19 @@ export function isDatabaseConnectionError(error: unknown) {
   return false;
 }
 
+// 🔥 FUNÇÃO CORRIGIDA - extrai hostname sem usar URL()
 function getDatabaseHostLabel() {
   try {
-    loadProjectEnv();
-
     if (!process.env.DATABASE_URL) return 'desconhecido';
 
-    const url = new URL(process.env.DATABASE_URL);
-    return `${url.hostname}:${url.port || '5432'}`;
+    // Extrair hostname e porta manualmente da string postgresql://
+    const match = process.env.DATABASE_URL.match(/@([^:/]+)(?::(\d+))?/);
+    if (!match) return 'desconhecido';
+    
+    const hostname = match[1];
+    const port = match[2] || '5432';
+    
+    return `${hostname}:${port}`;
   } catch {
     return 'desconhecido';
   }
@@ -84,17 +69,8 @@ export function createDatabaseUnavailableResponse() {
 
   return NextResponse.json(
     {
-      error: `Banco de dados indisponível em ${host}. Verifique se o mesmo DATABASE_URL usado no Prisma CLI também está sendo usado pelo Next.js e rode \`npm run db:push\` e \`npm run db:seed\` no banco correto.`,
+      error: `Banco de dados indisponível em ${host}. Verifique sua conexão.`,
     },
     { status: 503 },
   );
-}
-
-// legacy compatibility helpers for unused legacy routes
-export async function getOrCreatePatient() {
-  return null;
-}
-
-export async function createAuditLog() {
-  return null;
 }
