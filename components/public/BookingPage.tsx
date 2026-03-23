@@ -43,6 +43,8 @@ export default function BookingPage() {
   const [successModalText, setSuccessModalText] = useState('');
   const [enabledWeekdays, setEnabledWeekdays] = useState<number[]>([]);
   const [availabilityLoaded, setAvailabilityLoaded] = useState(false);
+  // 🔥 NOVO: Estado para o consentimento
+  const [consent, setConsent] = useState(false);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
 
   const minDate = useMemo(() => todayISO(), []);
@@ -94,6 +96,7 @@ export default function BookingPage() {
     setSelected('');
     setSlots([]);
     setMessage('');
+    setConsent(false); // 🔥 Resetar consentimento
   }
 
   function closeSuccessModal() {
@@ -155,13 +158,19 @@ export default function BookingPage() {
 
   const hasFieldError = Boolean(fieldErrors.email || fieldErrors.telefone);
   const canSubmit = useMemo(
-    () => Boolean(date && selected && form.nome && form.email && form.telefone && !hasFieldError),
-    [date, selected, form, hasFieldError],
+    () => Boolean(date && selected && form.nome && form.email && form.telefone && !hasFieldError && consent), // 🔥 Adicionar consent
+    [date, selected, form, hasFieldError, consent],
   );
 
   async function submit() {
     if (date < minDate) {
       setMessage('Não é possível solicitar ambientação em datas anteriores ao dia atual.');
+      return;
+    }
+
+    // 🔥 VALIDAÇÃO DO CONSENTIMENTO
+    if (!consent) {
+      setMessage('Você precisa autorizar o uso dos seus dados para prosseguir.');
       return;
     }
 
@@ -339,6 +348,23 @@ export default function BookingPage() {
             value={form.mensagem}
             onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
           />
+
+          {/* 🔥 CHECKBOX DE CONSENTIMENTO */}
+          <div className="flex items-start gap-3 pt-2">
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-[#C2183A] focus:ring-[#C2183A]"
+            />
+            <label htmlFor="consent" className="text-sm text-gray-600 leading-relaxed">
+              Autorizo o uso dos meus dados (nome, email, telefone) exclusivamente para agendamento 
+              e comunicação sobre esta consulta. Entendo que meus dados não serão compartilhados com 
+              terceiros.
+            </label>
+          </div>
+
           <button
             disabled={!canSubmit}
             onClick={submit}
