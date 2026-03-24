@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma, { isDatabaseConnectionError, createDatabaseUnavailableResponse } from '@/lib/database';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { BookAppointmentSchema } from '@/lib/validators';
-import { getTodayISO, getAvailableSlots } from '@/lib/scheduling';
+import { getTodayISO } from '@/lib/scheduling';
+import { invalidateAdminCache } from '@/lib/admin-cache';
 
-// 🔥 ID FIXO do psicólogo (obtido uma vez e mantido)
+// ID FIXO do psicólogo (obtido uma vez e mantido)
 const PSYCHOLOGIST_ID = 'cmmw6oa2b0003132nw01wicuh';
 
 export async function GET(req: NextRequest) {
@@ -121,6 +122,10 @@ export async function POST(req: NextRequest) {
     });
     console.timeEnd("createAppointment");
 
+    // INVALIDAR CACHE DO ADMIN
+    invalidateAdminCache(PSYCHOLOGIST_ID, '');
+    console.log(`🗑️ Cache invalidado para psicólogo ${PSYCHOLOGIST_ID}`);
+
     console.timeEnd("POST /api/appointments");
     return NextResponse.json(
       {
@@ -142,6 +147,14 @@ export async function POST(req: NextRequest) {
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
     }
+    
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+      return NextResponse.json(
+        { success: false, error: 'Horário indisponível' },
+        { status: 409 }
+      );
+    }
+    
     console.error('Erro ao criar agendamento:', error);
     return NextResponse.json({ success: false, error: 'Erro interno do servidor' }, { status: 500 });
   }

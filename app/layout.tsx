@@ -5,8 +5,6 @@ import type { Metadata } from 'next';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import './globals.css';
-
-// 🔥 ADICIONAR ESTAS 2 LINHAS NO TOPO (depois dos imports)
 import { initializeSystem } from '@/lib/init';
 if (typeof window === 'undefined') initializeSystem().catch(console.error);
 

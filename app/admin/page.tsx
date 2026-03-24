@@ -7,9 +7,9 @@ export default async function AdminPage() {
   // ✅ Tenta verificar com cookie (pode falhar)
   const admin = await getAdminFromServerCookie();
   
-  // 🔥 Se não tiver cookie, ainda assim renderiza o painel
+  // Se não tiver cookie, ainda assim renderiza o painel
   // O AdminPanel vai verificar o token no cliente
-  // if (!admin) redirect('/admin/login');  ← COMENTADO!
+  if (!admin) redirect('/admin/login');
 
   return (
     <div className="container mx-auto px-4">

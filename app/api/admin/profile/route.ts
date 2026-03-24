@@ -3,32 +3,28 @@ import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } 
 import { getAdminFromRequest } from '@/lib/auth';
 import { ProfileSchema } from '@/lib/validators';
 import { fileTypeFromBuffer } from 'file-type';
+import { getCachedProfile, setCachedProfile, invalidateAdminCache } from '@/lib/admin-cache';
 
 export const dynamic = 'force-dynamic';
 
-// 🔥 FUNÇÃO DE VALIDAÇÃO DE IMAGEM
+// FUNÇÃO DE VALIDAÇÃO DE IMAGEM
 async function validateImage(base64String: string): Promise<{ valid: boolean; error?: string }> {
-  // Verifica se é base64 válido de imagem
   if (!base64String.startsWith('data:image/')) {
     return { valid: false, error: 'Formato de imagem inválido' };
   }
 
-  // Extrai os dados base64 (remove o prefixo "data:image/xxx;base64,")
   const base64Data = base64String.split(',')[1];
   if (!base64Data) {
     return { valid: false, error: 'Dados de imagem inválidos' };
   }
 
-  // Converte para buffer
   const buffer = Buffer.from(base64Data, 'base64');
 
-  // 🔥 TAMANHO MÁXIMO: 5MB (suficiente para fotos de celular)
   const MAX_SIZE = 5 * 1024 * 1024; // 5MB
   if (buffer.length > MAX_SIZE) {
     return { valid: false, error: `Imagem muito grande. Máximo 5MB. Tente reduzir a resolução.` };
   }
 
-  // Detecta o tipo real do arquivo
   const fileType = await fileTypeFromBuffer(buffer);
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
@@ -52,6 +48,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    // VERIFICAR CACHE PRIMEIRO
+    const cached = getCachedProfile(admin.id);
+    if (cached) {
+      console.timeEnd("GET /profile total");
+      return NextResponse.json(cached);
+    }
+
     console.time("prisma profile.findUnique");
     const profile = await prisma.profile.findUnique({ 
       where: { user_id: admin.id },
@@ -67,6 +70,9 @@ export async function GET(request: Request) {
       }
     });
     console.timeEnd("prisma profile.findUnique");
+
+    // ARMAZENAR EM CACHE
+    setCachedProfile(admin.id, profile);
 
     console.timeEnd("GET /profile total");
     return NextResponse.json(profile);
@@ -101,7 +107,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    // 🔥 VALIDAR IMAGEM SE HOUVER
+    // VALIDAR IMAGEM SE HOUVER
     const photoUrl = parsed.data.photo_url;
     if (photoUrl && photoUrl.startsWith('data:image/')) {
       const validation = await validateImage(photoUrl);
@@ -135,6 +141,9 @@ export async function PUT(request: Request) {
       }
     });
     console.timeEnd("prisma profile.upsert");
+
+    // INVALIDAR CACHE APÓS ALTERAÇÃO
+    invalidateAdminCache(admin.psychologist?.id, admin.id);
 
     console.timeEnd("PUT /profile total");
     return NextResponse.json(profile);

@@ -51,7 +51,7 @@ export default function Header() {
           ) : isPublicPage ? (
             // ✅ PÁGINAS PÚBLICAS - mostra os dois links
             <>
-              <Link href="/admin/login" className="transition hover:text-[#C2183A]">
+              <Link href="/admin" className="transition hover:text-[#C2183A]">
                 Login
               </Link>
               <Link

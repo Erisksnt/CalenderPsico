@@ -31,11 +31,11 @@ export default function AdminLoginPage() {
       if (response.ok) {
         console.log('✅ Login OK, salvando token...');
         
-        // 🔥 LINHA IMPORTANTE - SALVAR O TOKEN!
+        // LINHA IMPORTANTE - SALVAR O TOKEN!
         localStorage.setItem('token', data.token);
         
         console.log('✅ Token salvo, redirecionando...');
-        router.push('/admin');
+        window.location.href = '/admin';
       } else {
         console.log('❌ Login falhou:', data.error);
         setError(data?.error || 'Falha no login');

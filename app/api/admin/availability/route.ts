@@ -1,39 +1,38 @@
 import { NextResponse } from 'next/server';
 import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
-// 🔥 REMOVER esta linha:
-// import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { AvailabilityBulkSchema } from '@/lib/validators';
+import { getCachedAvailability, setCachedAvailability, invalidateAdminCache } from '@/lib/admin-cache';
 
 export const dynamic = 'force-dynamic';
 
 async function getPsychologistId(request: Request) {
-  // 🔥 REMOVER esta linha:
-  // await ensureDefaultAdmin();
-  
-  console.time("getPsychologistId"); // Opcional
   const admin = await getAdminFromRequest(request);
-  console.timeEnd("getPsychologistId"); // Opcional
-  
   if (!admin?.psychologist) return null;
   return admin.psychologist.id;
 }
 
 export async function GET(request: Request) {
-  console.time("GET /api/admin/availability"); // Opcional
+  console.time("GET /api/admin/availability");
   
   try {
     const psychologistId = await getPsychologistId(request);
     if (!psychologistId) {
-      console.timeEnd("GET /api/admin/availability"); // Opcional
+      console.timeEnd("GET /api/admin/availability");
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    console.time("findAvailability"); // Opcional
+    // VERIFICAR CACHE
+    const cached = getCachedAvailability(psychologistId);
+    if (cached) {
+      console.timeEnd("GET /api/admin/availability");
+      return NextResponse.json(cached);
+    }
+
+    console.time("findAvailability");
     const rows = await prisma.availability.findMany({
       where: { psychologist_id: psychologistId },
       orderBy: { day_of_week: 'asc' },
-      // ⚡ Selecionar apenas campos necessários
       select: {
         id: true,
         day_of_week: true,
@@ -46,12 +45,15 @@ export async function GET(request: Request) {
         updated_at: true
       }
     });
-    console.timeEnd("findAvailability"); // Opcional
+    console.timeEnd("findAvailability");
 
-    console.timeEnd("GET /api/admin/availability"); // Opcional
+    // ARMAZENAR EM CACHE
+    setCachedAvailability(psychologistId, rows);
+
+    console.timeEnd("GET /api/admin/availability");
     return NextResponse.json(rows);
   } catch (error) {
-    console.timeEnd("GET /api/admin/availability"); // Opcional
+    console.timeEnd("GET /api/admin/availability");
     
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
@@ -62,31 +64,28 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  console.time("PUT /api/admin/availability"); // Opcional
+  console.time("PUT /api/admin/availability");
   
   try {
     const psychologistId = await getPsychologistId(request);
     if (!psychologistId) {
-      console.timeEnd("PUT /api/admin/availability"); // Opcional
+      console.timeEnd("PUT /api/admin/availability");
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
     const body = await request.json();
     const parsed = AvailabilityBulkSchema.safeParse(body);
     if (!parsed.success) {
-      console.timeEnd("PUT /api/admin/availability"); // Opcional
+      console.timeEnd("PUT /api/admin/availability");
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    // ⚡ Transação otimizada
-    console.time("transaction"); // Opcional
+    console.time("transaction");
     await prisma.$transaction(async (tx) => {
-      // Deletar existentes
       await tx.availability.deleteMany({ 
         where: { psychologist_id: psychologistId } 
       });
       
-      // Criar novos (apenas se houver itens)
       if (parsed.data.items.length > 0) {
         await tx.availability.createMany({
           data: parsed.data.items.map((item) => ({
@@ -100,10 +99,10 @@ export async function PUT(request: Request) {
         });
       }
     });
-    console.timeEnd("transaction"); // Opcional
+    console.timeEnd("transaction");
 
-    // Buscar os dados atualizados (com select otimizado)
-    console.time("fetchUpdated"); // Opcional
+    // Buscar os dados atualizados
+    console.time("fetchUpdated");
     const rows = await prisma.availability.findMany({
       where: { psychologist_id: psychologistId },
       orderBy: { day_of_week: 'asc' },
@@ -119,12 +118,15 @@ export async function PUT(request: Request) {
         updated_at: true
       }
     });
-    console.timeEnd("fetchUpdated"); // Opcional
+    console.timeEnd("fetchUpdated");
 
-    console.timeEnd("PUT /api/admin/availability"); // Opcional
+    // INVALIDAR CACHE APÓS ALTERAÇÃO
+    invalidateAdminCache(psychologistId, ''); // Só precisa do psychologistId
+
+    console.timeEnd("PUT /api/admin/availability");
     return NextResponse.json(rows);
   } catch (error) {
-    console.timeEnd("PUT /api/admin/availability"); // Opcional
+    console.timeEnd("PUT /api/admin/availability");
     
     if (isDatabaseConnectionError(error)) {
       return createDatabaseUnavailableResponse();
