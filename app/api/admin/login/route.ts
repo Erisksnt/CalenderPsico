@@ -3,18 +3,38 @@ import { AdminLoginSchema } from '@/lib/validators';
 import { verifyPassword, createToken, buildAuthCookie } from '@/lib/auth';
 import { isDatabaseConnectionError, createDatabaseUnavailableResponse } from '@/lib/database';
 import prisma from '@/lib/database';
+import { loginRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   console.time("POST /api/admin/login");
   
   try {
+    // 🔥 RATE LIMIT - 5 tentativas a cada 15 minutos
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+               request.headers.get('x-real-ip') || 
+               '127.0.0.1';
+    
+    const { success, limit, reset, remaining } = await loginRateLimit.limit(ip);
+    
+    if (!success) {
+      console.timeEnd("POST /api/admin/login");
+      return NextResponse.json(
+        { 
+          error: 'Muitas tentativas de login. Tente novamente em 5 minutos.',
+          limit,
+          remaining,
+          reset: new Date(reset).toISOString()
+        }, 
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = AdminLoginSchema.safeParse(body);
 
     if (!parsed.success) {
       console.timeEnd("POST /api/admin/login");
       
-      // 🔥 CORREÇÃO: Pegar o primeiro erro de forma legível
       const errors = parsed.error.flatten();
       const firstError = 
         errors.fieldErrors.email?.[0] || 
@@ -22,7 +42,7 @@ export async function POST(request: Request) {
         'Dados inválidos';
       
       return NextResponse.json(
-        { error: firstError },  // ← AGORA É UMA STRING!
+        { error: firstError },
         { status: 400 }
       );
     }
@@ -68,10 +88,6 @@ export async function POST(request: Request) {
       role: 'ADMIN',
       psychologistId: user.psychologist?.id,
       userName: user.profile?.full_name,
-      userProfile: user.profile ? {
-        id: user.profile.id,
-        full_name: user.profile.full_name,
-      } : undefined
     });
     console.timeEnd("createToken");
 
@@ -92,6 +108,9 @@ export async function POST(request: Request) {
         headers: {
           'Set-Cookie': buildAuthCookie(token),
           'Cache-Control': 'no-store',
+          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': reset.toString(),
         },
       },
     );
