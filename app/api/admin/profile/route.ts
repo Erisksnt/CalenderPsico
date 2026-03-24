@@ -1,17 +1,48 @@
 import { NextResponse } from 'next/server';
 import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } from '@/lib/database';
 import { getAdminFromRequest } from '@/lib/auth';
-// ✅ JÁ REMOVIDO: import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { ProfileSchema } from '@/lib/validators';
+import { fileTypeFromBuffer } from 'file-type';
 
 export const dynamic = 'force-dynamic';
+
+// 🔥 FUNÇÃO DE VALIDAÇÃO DE IMAGEM
+async function validateImage(base64String: string): Promise<{ valid: boolean; error?: string }> {
+  // Verifica se é base64 válido de imagem
+  if (!base64String.startsWith('data:image/')) {
+    return { valid: false, error: 'Formato de imagem inválido' };
+  }
+
+  // Extrai os dados base64 (remove o prefixo "data:image/xxx;base64,")
+  const base64Data = base64String.split(',')[1];
+  if (!base64Data) {
+    return { valid: false, error: 'Dados de imagem inválidos' };
+  }
+
+  // Converte para buffer
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  // 🔥 TAMANHO MÁXIMO: 5MB (suficiente para fotos de celular)
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  if (buffer.length > MAX_SIZE) {
+    return { valid: false, error: `Imagem muito grande. Máximo 5MB. Tente reduzir a resolução.` };
+  }
+
+  // Detecta o tipo real do arquivo
+  const fileType = await fileTypeFromBuffer(buffer);
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+
+  if (!fileType || !allowedTypes.includes(fileType.mime)) {
+    return { valid: false, error: 'Apenas imagens JPG, PNG ou WEBP são permitidas' };
+  }
+
+  return { valid: true };
+}
 
 export async function GET(request: Request) {
   console.time("GET /profile total");
 
   try {
-    // ✅ JÁ REMOVIDO: await ensureDefaultAdmin();
-
     console.time("getAdminFromRequest");
     const admin = await getAdminFromRequest(request);
     console.timeEnd("getAdminFromRequest");
@@ -51,11 +82,9 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  console.time("PUT /profile total"); // Opcional: adicionar timer
+  console.time("PUT /profile total");
   
   try {
-    // ✅ JÁ REMOVIDO: await ensureDefaultAdmin();
-    
     console.time("getAdminFromRequest PUT");
     const admin = await getAdminFromRequest(request);
     console.timeEnd("getAdminFromRequest PUT");
@@ -72,6 +101,16 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
+    // 🔥 VALIDAR IMAGEM SE HOUVER
+    const photoUrl = parsed.data.photo_url;
+    if (photoUrl && photoUrl.startsWith('data:image/')) {
+      const validation = await validateImage(photoUrl);
+      if (!validation.valid) {
+        console.timeEnd("PUT /profile total");
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+    }
+
     console.time("prisma profile.upsert");
     const profile = await prisma.profile.upsert({
       where: { user_id: admin.id },
@@ -84,7 +123,6 @@ export async function PUT(request: Request) {
         ...parsed.data, 
         photo_url: parsed.data.photo_url || null 
       },
-      // ⚡ ADICIONAR select para retornar apenas campos necessários
       select: {
         id: true,
         user_id: true,
