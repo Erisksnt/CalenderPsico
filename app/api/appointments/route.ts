@@ -6,6 +6,9 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { BookAppointmentSchema } from '@/lib/validators';
 import { getTodayISO, getAvailableSlots } from '@/lib/scheduling';
 
+// 🔥 ID FIXO do psicólogo (obtido uma vez e mantido)
+const PSYCHOLOGIST_ID = 'cmmw6oa2b0003132nw01wicuh';
+
 export async function GET(req: NextRequest) {
   console.time("GET /api/appointments");
   
@@ -73,19 +76,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ⚡ Buscar psicólogo principal com select otimizado
-    console.time("findPsychologist");
-    const psychologist = await prisma.psychologist.findFirst({
-      orderBy: { created_at: 'asc' },
-      select: { id: true }
-    });
-    console.timeEnd("findPsychologist");
-    
-    if (!psychologist) {
-      console.timeEnd("POST /api/appointments");
-      return NextResponse.json({ success: false, error: 'Psicólogo não encontrado' }, { status: 404 });
-    }
-
     const { nome, email, telefone, mensagem, data, hora } = parsed.data;
 
     if (data < getTodayISO()) {
@@ -93,51 +83,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Não é possível agendar em datas passadas' }, { status: 400 });
     }
 
-    console.time("checkAvailability");
-    const slots = await getAvailableSlots(data, psychologist.id);
-    console.timeEnd("checkAvailability");
-    
-    if (!slots.includes(hora)) {
-      console.timeEnd("POST /api/appointments");
-      return NextResponse.json({ success: false, error: 'Horário indisponível' }, { status: 409 });
-    }
-
-    // 🔥 VERIFICAÇÃO EXTRA DE SEGURANÇA - CORRIGIDA
-    console.time("finalCheck");
-    const existingAppointment = await prisma.appointment.findFirst({
-      where: {
-        psychologist_id: psychologist.id,
-        data: data,
-        hora: hora,
-        // ✅ Só bloqueia se for PENDING ou CONFIRMED
-        status: {
-          in: ['PENDING', 'CONFIRMED']
-        }
-      }
-    });
-    console.timeEnd("finalCheck");
-
-    if (existingAppointment) {
-      console.log('❌ CONFLITO: Agendamento ativo já existe', existingAppointment);
-      console.timeEnd("POST /api/appointments");
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Horário indisponível' 
-      }, { status: 409 });
-    }
-
-    // 🔥 SUBSTITUÍDO: create por upsert
+    // ✅ CRIA AGENDAMENTO (upsert)
     console.time("createAppointment");
     const appointment = await prisma.appointment.upsert({
       where: {
-        // Usa a unique constraint para encontrar
         psychologist_id_data_hora: {
-          psychologist_id: psychologist.id,
+          psychologist_id: PSYCHOLOGIST_ID,
           data: data,
           hora: hora
         }
       },
-      // Se existir (caso cancelado), atualiza para PENDING
       update: {
         nome_paciente: nome,
         email,
@@ -146,9 +101,8 @@ export async function POST(req: NextRequest) {
         status: 'PENDING',
         updated_at: new Date()
       },
-      // Se não existir, cria novo
       create: {
-        psychologist_id: psychologist.id,
+        psychologist_id: PSYCHOLOGIST_ID,
         nome_paciente: nome,
         email,
         telefone,
@@ -179,7 +133,6 @@ export async function POST(req: NextRequest) {
 📅 Você receberá a confirmação da agenda por e-mail ou ligação telefônica.
 
 🤗 Estamos felizes em te acompanhar nesse início da sua jornada!`
-
       },
       { status: 201 },
     );

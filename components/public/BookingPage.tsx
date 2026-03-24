@@ -2,11 +2,6 @@
 
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 
-const SUCCESS_MESSAGE = `Sua ambientação foi solicitada com sucesso e está aguardando a confirmação do psicólogo.
-
-Essa conversa inicial servirá para que vocês possam se conhecer melhor e entender se desejam iniciar o processo terapêutico.
-
-Você receberá a confirmação da agenda por e-mail ou contato telefônico.`;
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const PHONE_REGEX = /^\d{10,11}$/;
 const INITIAL_FORM_STATE = { nome: '', email: '', telefone: '', mensagem: '' };
@@ -43,7 +38,6 @@ export default function BookingPage() {
   const [successModalText, setSuccessModalText] = useState('');
   const [enabledWeekdays, setEnabledWeekdays] = useState<number[]>([]);
   const [availabilityLoaded, setAvailabilityLoaded] = useState(false);
-  // 🔥 NOVO: Estado para o consentimento
   const [consent, setConsent] = useState(false);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -96,7 +90,7 @@ export default function BookingPage() {
     setSelected('');
     setSlots([]);
     setMessage('');
-    setConsent(false); // 🔥 Resetar consentimento
+    setConsent(false);
   }
 
   function closeSuccessModal() {
@@ -158,7 +152,7 @@ export default function BookingPage() {
 
   const hasFieldError = Boolean(fieldErrors.email || fieldErrors.telefone);
   const canSubmit = useMemo(
-    () => Boolean(date && selected && form.nome && form.email && form.telefone && !hasFieldError && consent), // 🔥 Adicionar consent
+    () => Boolean(date && selected && form.nome && form.email && form.telefone && !hasFieldError && consent),
     [date, selected, form, hasFieldError, consent],
   );
 
@@ -168,7 +162,6 @@ export default function BookingPage() {
       return;
     }
 
-    // 🔥 VALIDAÇÃO DO CONSENTIMENTO
     if (!consent) {
       setMessage('Você precisa autorizar o uso dos seus dados para prosseguir.');
       return;
@@ -193,7 +186,7 @@ export default function BookingPage() {
 
       const data = await response.json();
       if (response.ok) {
-        setSuccessModalText(data.message || SUCCESS_MESSAGE);
+        setSuccessModalText(data.message); // ✅ usa a mensagem do backend
         resetFlow();
         setIsSuccessModalOpen(true);
       } else {
@@ -349,7 +342,7 @@ export default function BookingPage() {
             onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
           />
 
-          {/* 🔥 CHECKBOX DE CONSENTIMENTO */}
+          {/* CHECKBOX DE CONSENTIMENTO */}
           <div className="flex items-start gap-3 pt-2">
             <input
               type="checkbox"
