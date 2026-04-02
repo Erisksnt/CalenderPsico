@@ -3,6 +3,7 @@ import prisma, { createDatabaseUnavailableResponse, isDatabaseConnectionError } 
 import { getAdminFromRequest } from '@/lib/auth';
 import { UpdateAppointmentStatusSchema } from '@/lib/validators';
 import { invalidateAdminCache } from '@/lib/admin-cache';
+import { sendAppointmentConfirmedEmail } from '@/lib/appointment-email';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,10 +60,39 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         telefone: true,
         status: true,
         mensagem: true,
-        updated_at: true
+        updated_at: true,
+        psychologist: {
+          select: {
+            user: {
+              select: {
+                profile: {
+                  select: {
+                    full_name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       }
     });
     console.timeEnd("updateAppointment");
+
+    if (parsed.data.status === 'CONFIRMED' && existing.status !== 'CONFIRMED') {
+      try {
+        await sendAppointmentConfirmedEmail({
+          appointmentId: updated.id,
+          patientName: updated.nome_paciente,
+          patientEmail: updated.email,
+          date: updated.data,
+          time: updated.hora,
+          psychologistName: updated.psychologist?.user?.profile?.full_name ?? undefined,
+          notes: updated.mensagem,
+        });
+      } catch (emailError) {
+        console.error('Erro ao enviar e-mail de confirmação:', emailError);
+      }
+    }
 
     // 🔥 INVALIDAR CACHE APÓS ALTERAÇÃO
     invalidateAdminCache(admin.psychologist.id, admin.id);
@@ -80,4 +110,5 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     console.error('Erro ao atualizar agendamento do admin:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
+
 }

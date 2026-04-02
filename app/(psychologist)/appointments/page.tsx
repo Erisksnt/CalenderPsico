@@ -14,6 +14,7 @@ interface Appointment {
   patient: {
     name: string;
     email: string;
+    mensagem: string;
     phone: string;
   };
   service: {

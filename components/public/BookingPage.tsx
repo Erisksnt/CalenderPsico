@@ -96,6 +96,9 @@ export default function BookingPage() {
   function closeSuccessModal() {
     setIsSuccessModalOpen(false);
     setSuccessModalText('');
+    
+    // Recarrega a página
+    window.location.reload();
   }
 
   function isWeekdayEnabled(value: string) {
@@ -186,7 +189,7 @@ export default function BookingPage() {
 
       const data = await response.json();
       if (response.ok) {
-        setSuccessModalText(data.message); // ✅ usa a mensagem do backend
+        setSuccessModalText(data.message);
         resetFlow();
         setIsSuccessModalOpen(true);
       } else {
@@ -382,7 +385,7 @@ export default function BookingPage() {
               onClick={closeSuccessModal}
               className="w-full rounded-full bg-[#C2183A] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#a0162f]"
             >
-              Entendi
+              Entendido
             </button>
           </div>
         </div>

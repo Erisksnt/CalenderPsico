@@ -2,10 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: false,
-  // ✅ REMOVIDO: typescript: { ignoreBuildErrors: true },
   async headers() {
     return [
-      // 🔒 HEADERS DE SEGURANÇA PARA TODAS AS ROTAS
+      // HEADERS DE SEGURANÇA PARA TODAS AS ROTAS
       {
         source: '/:path*',
         headers: [
@@ -29,6 +28,11 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
           },
+          // HSTS - Força conexão HTTPS
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
           // Content Security Policy (protege contra XSS)
           {
             key: 'Content-Security-Policy',
@@ -46,7 +50,6 @@ const nextConfig = {
           },
         ],
       },
-      // 🔒 HEADERS CORS PARA API (já existiam)
       {
         source: '/api/:path*',
         headers: [

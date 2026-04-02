@@ -484,8 +484,10 @@ export default function AdminPanel() {
               <p className="font-semibold">{a.nome_paciente}</p>
               <p className="text-sm">Email: {a.email}</p>
               <p className="text-sm">Telefone: {a.telefone}</p>
-              <p className="text-sm">Data: {a.data} às {a.hora}</p>
-              <p className="text-sm">Status: {statusLabel[a.status]}</p>
+              <p className="text-sm">Data solicitada: {a.data}</p>
+              <p className="text-sm">Horário solicitado: {a.hora}</p>
+              <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
+              <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
             </div>
           ))}
           {doneAppointments.length === 0 && <p className="text-sm text-gray-500">Nenhuma solicitação concluída.</p>}
@@ -498,8 +500,10 @@ export default function AdminPanel() {
               <p className="font-semibold">{a.nome_paciente}</p>
               <p className="text-sm">Email: {a.email}</p>
               <p className="text-sm">Telefone: {a.telefone}</p>
-              <p className="text-sm">Data: {a.data} às {a.hora}</p>
-              <p className="text-sm">Status: {statusLabel[a.status]}</p>
+              <p className="text-sm">Data solicitada: {a.data}</p>
+              <p className="text-sm">Horário solicitado: {a.hora}</p>
+              <p className="text-sm">Mensagem: {a.mensagem || 'Não informada'}</p>
+              <p className="text-sm font-medium">Status: {statusLabel[a.status]}</p>
             </div>
           ))}
           {cancelledAppointments.length === 0 && <p className="text-sm text-gray-500">Nenhuma solicitação cancelada.</p>}
