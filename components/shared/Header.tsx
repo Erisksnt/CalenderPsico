@@ -11,9 +11,7 @@ export default function Header() {
 
   const isAdminSection = Boolean(
     pathname?.startsWith('/admin') &&
-    pathname !== '/admin/login' &&
-    pathname !== '/admin/forgot-password' &&
-    pathname !== '/admin/reset-password'
+    pathname !== '/admin/login'
   );
 
   const isPublicPage = !pathname?.startsWith('/admin');

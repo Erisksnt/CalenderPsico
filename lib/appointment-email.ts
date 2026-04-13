@@ -153,7 +153,7 @@ export async function sendAppointmentRequestedEmail(options: AppointmentRequeste
     <p><strong>Telefone do paciente:</strong> ${safePhone}</p>
     ${safeNotes ? `<p><strong>Mensagem do paciente:</strong> ${safeNotes}</p>` : ''}
     <p>Por favor, acesse o painel administrativo para aceitar ou cancelar esta solicitação. </p>
-    </p> https://psicology-gold.vercel.app/ </p>
+    </p> https://psi-thaisalmeida.vercel.app/ </p>
   `;
 
   const text = `Olá,

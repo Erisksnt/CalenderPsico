@@ -40,7 +40,7 @@ export default function ProfilePage() {
     const loadProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('/api/psychologists/profile', {
+        const response = await fetch('/api/psychologist/profile', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -88,7 +88,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/psychologists/profile', {
+      const response = await fetch('/api/psychologist/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

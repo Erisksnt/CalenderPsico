@@ -26,9 +26,6 @@ export default function PsychologistLayout({ children }: { children: React.React
         <a href="/psychologist/availability" className="font-bold text-blue-600 hover:text-blue-700">
           Disponibilidades
         </a>
-        <a href="/psychologist/services" className="font-bold text-blue-600 hover:text-blue-700">
-          Serviços
-        </a>
         <a href="/psychologist/appointments" className="font-bold text-blue-600 hover:text-blue-700">
           Agendamentos
         </a>

@@ -30,20 +30,12 @@ interface Appointment {
   };
 }
 
-interface TimeBlock {
-  id: string;
-  start_time: string;
-  end_time: string;
-  reason: string;
-}
-
 export default function PsychologistDashboard() {
   const [profile, setProfile] = useState<PsychologistProfile | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'agenda' | 'bloqueios'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'agenda'>('overview');
   const [stats, setStats] = useState({
     total: 0,
     scheduled: 0,
@@ -61,7 +53,7 @@ export default function PsychologistDashboard() {
     
     try {
       // ⚡ Carregar tudo em paralelo
-      await Promise.all([fetchProfile(), fetchAppointments(), fetchTimeBlocks()]);
+      await Promise.all([fetchProfile(), fetchAppointments()]);
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
       setError('Erro ao carregar dados. Tente novamente.');
@@ -114,25 +106,6 @@ export default function PsychologistDashboard() {
       }
     } catch (error) {
       console.error('Erro ao carregar agendamentos:', error);
-      throw error;
-    }
-  };
-
-  const fetchTimeBlocks = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      // ✅ Rota já otimizada
-      const response = await fetch('/api/psychologists/time-blocks', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setTimeBlocks(data.data || []);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar bloqueios:', error);
       throw error;
     }
   };
@@ -223,16 +196,6 @@ export default function PsychologistDashboard() {
         >
           Agenda ({stats.scheduled})
         </button>
-        <button
-          onClick={() => setActiveTab('bloqueios')}
-          className={`px-6 py-2 font-bold border-b-2 transition ${
-            activeTab === 'bloqueios'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-600 hover:text-gray-800'
-          }`}
-        >
-          Datas Bloqueadas ({timeBlocks.length})
-        </button>
       </div>
 
       {/* Overview Tab */}
@@ -302,41 +265,6 @@ export default function PsychologistDashboard() {
       )}
 
       {/* Bloqueios Tab */}
-      {activeTab === 'bloqueios' && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800">Datas Bloqueadas</h2>
-            <Link href="/psychologist/availability">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-bold">
-                + Bloquear Data
-              </button>
-            </Link>
-          </div>
-          {timeBlocks.length > 0 ? (
-            <div className="divide-y divide-gray-200">
-              {timeBlocks.map((block) => (
-                <div key={block.id} className="p-6 hover:bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-bold text-gray-800">{block.reason}</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {formatDateTimeBR(block.start_time)} até {formatDateTimeBR(block.end_time)}
-                      </p>
-                    </div>
-                    <button className="text-red-600 hover:text-red-700 font-bold text-sm">
-                      Remover
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-12 text-center text-gray-600">
-              <p>Nenhuma data bloqueada</p>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

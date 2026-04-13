@@ -39,7 +39,7 @@ export default async function Home() {
             </div>
           )}
           <div className="space-y-2">
-            <p className="text-sm uppercase tracking-[0.4em] text-[#4d4d4d]">Psicólogo(a) clínico(a)</p>
+            <p className="text-sm uppercase tracking-[0.4em] text-[#4d4d4d]">Psicóloga clínica</p>
             <h1 className="text-4xl md:text-5xl font-semibold">{profile?.full_name || 'CalenderPsico'}</h1>
           </div>
         </div>

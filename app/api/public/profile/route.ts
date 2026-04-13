@@ -8,7 +8,7 @@ import prisma, {
 // 🔥 REMOVER: import { ensureDefaultAdmin, getPrimaryPsychologist } from '@/lib/bootstrap';
 
 export async function GET() {
-  console.time("GET /api/public/psychologist/profile");
+  console.time("GET /api/public/profile");
   
   try {
     // 🔥 REMOVER: await ensureDefaultAdmin();
@@ -16,7 +16,7 @@ export async function GET() {
     // ⚡ Buscar o psicólogo principal com perfil em UMA ÚNICA QUERY
     console.time("findPsychologistWithProfile");
     const psychologist = await prisma.psychologist.findFirst({
-      where: { 
+      where: {
         user: {
           profile: {
             isNot: null  // Só retorna se tiver perfil
@@ -48,14 +48,21 @@ export async function GET() {
     console.timeEnd("findPsychologistWithProfile");
 
     if (!psychologist?.user?.profile) {
-      console.timeEnd("GET /api/public/psychologist/profile");
+      console.timeEnd("GET /api/public/profile");
       return NextResponse.json(null, { status: 404 });
     }
 
-    console.timeEnd("GET /api/public/psychologist/profile");
-    
-    // ⚡ Retornar apenas o profile (já vem dentro da estrutura)
-    return NextResponse.json(psychologist.user.profile);
+    console.timeEnd("GET /api/public/profile");
+
+    return NextResponse.json({
+      id: psychologist.id,
+      full_name: psychologist.user.profile.full_name,
+      professional_bio: psychologist.user.profile.professional_bio,
+      work_method: psychologist.user.profile.work_method,
+      specialties: psychologist.user.profile.specialties,
+      photo_url: psychologist.user.profile.photo_url,
+      updated_at: psychologist.user.profile.updated_at,
+    });
   } catch (error) {
     console.timeEnd("GET /api/public/psychologist/profile");
     

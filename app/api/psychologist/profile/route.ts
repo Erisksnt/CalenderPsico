@@ -6,7 +6,6 @@ import prisma, {
   isDatabaseConnectionError,
 } from '@/lib/database';
 import { getAuthenticatedUser } from '@/lib/auth';
-// 🔥 REMOVER: import { ensureDefaultAdmin } from '@/lib/bootstrap';
 import { ProfileSchema } from '@/lib/validators';
 
 const PROFILE_SELECT = {
@@ -23,7 +22,6 @@ export async function GET(request: NextRequest) {
   console.time("GET /api/psychologist/profile");
   
   try {
-    // 🔥 REMOVER: await ensureDefaultAdmin();
 
     console.time("getAuthenticatedUser");
     const user = await getAuthenticatedUser(request);
@@ -40,7 +38,7 @@ export async function GET(request: NextRequest) {
     console.time("findProfile");
     const profile = await prisma.profile.findUnique({
       where: { user_id: user.id },
-      select: PROFILE_SELECT, // ✅ Já está otimizado!
+      select: PROFILE_SELECT,
     });
     console.timeEnd("findProfile");
 
@@ -76,7 +74,6 @@ export async function PUT(request: NextRequest) {
   console.time("PUT /api/psychologist/profile");
   
   try {
-    // 🔥 REMOVER: await ensureDefaultAdmin();
 
     console.time("getAuthenticatedUser");
     const user = await getAuthenticatedUser(request);
@@ -121,7 +118,7 @@ export async function PUT(request: NextRequest) {
         ...parsed.data,
         photo_url: parsed.data.photo_url || null,
       },
-      select: PROFILE_SELECT, // ✅ Reaproveitando o select otimizado
+      select: PROFILE_SELECT, // Reaproveitando o select otimizado
     });
     console.timeEnd("upsertProfile");
 

@@ -12,7 +12,9 @@ interface Psychologist {
   name: string;
   bio?: string;
   specialties: string[];
-  services: any[];
+  services?: any[];
+  photo_url?: string;
+  work_method?: string;
 }
 
 export default function AvailabilityList() {
@@ -26,12 +28,19 @@ export default function AvailabilityList() {
 
   const fetchPsychologist = async () => {
     try {
-      const response = await fetch('/api/psychologists');
+      const response = await fetch('/api/public/profile');
       const data = await response.json();
 
-      if (data.success && data.data && data.data.length > 0) {
-        // Pega o primeiro (único) psicólogo registrado
-        setPsychologist(data.data[0]);
+      if (data) {
+        setPsychologist({
+          id: data.id,
+          name: data.full_name || 'Nome não informado',
+          bio: data.professional_bio || '',
+          specialties: data.specialties || [],
+          services: [],
+          photo_url: data.photo_url || '',
+          work_method: data.work_method || '',
+        });
       }
     } catch (error) {
       console.error('Erro ao carregar perfil do psicólogo:', error);

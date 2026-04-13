@@ -177,8 +177,6 @@
  *    │  └─ [id]/
  *    │     └─ route.ts (GET/PUT/DELETE /api/services/[id])
  *    │
- *    └─ psychologists/
- *       └─ route.ts (GET /api/psychologists)
  */
 
 // ============================================

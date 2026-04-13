@@ -83,9 +83,6 @@ export default function AdminLoginPage() {
       {error && <p className="text-[#C2183A] text-sm">{error}</p>}
 
       <div className="space-y-1 text-sm text-[#4d4d4d]">
-        <Link className="text-[#C2183A] hover:text-[#a0162f]" href="/admin/forgot-password">
-          Esqueceu a senha?
-        </Link>
         <p>Acesso exclusivo para administradores</p>
       </div>
     </div>
