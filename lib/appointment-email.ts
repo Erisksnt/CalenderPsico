@@ -6,7 +6,7 @@ const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT ?? 0);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+const SMTP_FROM = SMTP_USER; // Usar o mesmo email do usuário SMTP como remetente
 const DEFAULT_DURATION = Number(process.env.DEFAULT_SESSION_DURATION_MINUTES ?? 60);
 const DURATION_MINUTES =
   Number.isFinite(DEFAULT_DURATION) && DEFAULT_DURATION > 0 ? DEFAULT_DURATION : 60;
@@ -113,6 +113,15 @@ function buildCalendarAttachment({
   ].join('\r\n');
 }
 
+export interface AppointmentRequestedEmailOptions {
+  patientName: string;
+  patientEmail: string;
+  patientPhone?: string;
+  date: string;
+  time: string;
+  notes?: string | null;
+}
+
 export interface AppointmentConfirmedEmailOptions {
   appointmentId: string;
   patientName: string;
@@ -123,6 +132,47 @@ export interface AppointmentConfirmedEmailOptions {
   notes?: string | null;
   durationMinutes?: number;
   location?: string;
+}
+
+export async function sendAppointmentRequestedEmail(options: AppointmentRequestedEmailOptions) {
+  if (!transporter) {
+    console.info('[SMTP] credenciais não configuradas; pulando envio de e-mail de solicitação de agendamento.');
+    return;
+  }
+
+  const recipientEmail = SMTP_USER;
+  const safePatientName = sanitizeString(options.patientName || 'Paciente');
+  const safeNotes = options.notes ? sanitizeString(options.notes) : null;
+  const safePhone = options.patientPhone?.trim() || 'não informado';
+
+  const subject = `Nova solicitação de ambientação de ${safePatientName}`;
+  const html = `
+    <p>Olá,</p>
+    <p>O paciente <strong>${safePatientName}</strong> solicitou uma ambientação no dia <strong>${options.date}</strong> às <strong>${options.time}</strong>.</p>
+    <p><strong>E-mail do paciente:</strong> ${options.patientEmail}</p>
+    <p><strong>Telefone do paciente:</strong> ${safePhone}</p>
+    ${safeNotes ? `<p><strong>Mensagem do paciente:</strong> ${safeNotes}</p>` : ''}
+    <p>Por favor, acesse o painel administrativo para aceitar ou cancelar esta solicitação. </p>
+    </p> https://psicology-gold.vercel.app/ </p>
+  `;
+
+  const text = `Olá,
+
+O paciente ${options.patientName} solicitou uma ambientação no dia ${options.date} às ${options.time}.
+
+E-mail do paciente: ${options.patientEmail}
+Telefone do paciente: ${safePhone}
+${safeNotes ? `Mensagem do paciente: ${safeNotes}
+` : ''}
+Acesse o painel administrativo para aceitar ou cancelar esta solicitação.`;
+
+  await transporter.sendMail({
+    from: SMTP_FROM!,
+    to: recipientEmail,
+    subject,
+    html,
+    text: text.trim(),
+  });
 }
 
 export async function sendAppointmentConfirmedEmail(options: AppointmentConfirmedEmailOptions) {
@@ -166,14 +216,11 @@ export async function sendAppointmentConfirmedEmail(options: AppointmentConfirme
     endUtc,
   });
 
-  const htmlNotes = safeNotes ? `<p><strong>Mensagem:</strong> ${safeNotes}</p>` : '';
-
   const html = `
     <p>Olá ${safePatientName},</p>
     <p>Sua consulta com ${psychologistLabel} foi confirmada.</p>
     <p><strong>Data e hora:</strong> ${formattedDateTime}</p>
     <p><strong>Local:</strong> ${location}</p>
-    ${htmlNotes}
     <p><a href="${googleLink}" target="_blank" rel="noreferrer">Adicionar ao Google Agenda</a></p>
   `;
 

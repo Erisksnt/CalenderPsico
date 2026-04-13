@@ -6,6 +6,7 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { BookAppointmentSchema } from '@/lib/validators';
 import { getTodayISO } from '@/lib/scheduling';
 import { invalidateAdminCache } from '@/lib/admin-cache';
+import { sendAppointmentRequestedEmail } from '@/lib/appointment-email';
 
 // ID FIXO do psicólogo (obtido uma vez e mantido)
 const PSYCHOLOGIST_ID = 'cmmw6oa2b0003132nw01wicuh';
@@ -125,6 +126,19 @@ export async function POST(req: NextRequest) {
     // INVALIDAR CACHE DO ADMIN
     invalidateAdminCache(PSYCHOLOGIST_ID, '');
     console.log(`🗑️ Cache invalidado para psicólogo ${PSYCHOLOGIST_ID}`);
+
+    try {
+      await sendAppointmentRequestedEmail({
+        patientName: nome,
+        patientEmail: email,
+        patientPhone: telefone,
+        date: data,
+        time: hora,
+        notes: mensagem,
+      });
+    } catch (emailError) {
+      console.error('Erro ao enviar e-mail de notificação ao psicólogo:', emailError);
+    }
 
     console.timeEnd("POST /api/appointments");
     return NextResponse.json(
