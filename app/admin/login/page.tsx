@@ -17,8 +17,6 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      console.log('📤 Enviando login...');
-      
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -26,22 +24,13 @@ export default function AdminLoginPage() {
       });
 
       const data = await response.json();
-      console.log('📥 Resposta:', { status: response.status, data });
 
       if (response.ok) {
-        console.log('✅ Login OK, salvando token...');
-        
-        // LINHA IMPORTANTE - SALVAR O TOKEN!
-        localStorage.setItem('token', data.token);
-        
-        console.log('✅ Token salvo, redirecionando...');
         window.location.href = '/admin';
       } else {
-        console.log('❌ Login falhou:', data.error);
         setError(data?.error || 'Falha no login');
       }
     } catch (error) {
-      console.error('🔥 Erro:', error);
       setError('Erro de conexão. Tente novamente.');
     } finally {
       setLoading(false);
@@ -49,7 +38,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 border rounded space-y-4">
+    <main className="max-w-md mx-auto my-12 bg-white p-6 border rounded space-y-4">
       <h1 className="text-2xl font-bold text-[#101010]">Login do Administrador</h1>
 
       <form onSubmit={submit} className="space-y-3">
@@ -85,6 +74,6 @@ export default function AdminLoginPage() {
       <div className="space-y-1 text-sm text-[#4d4d4d]">
         <p>Acesso exclusivo para administradores</p>
       </div>
-    </div>
+    </main>
   );
 }

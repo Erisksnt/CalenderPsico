@@ -7,8 +7,15 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET;
 export const COOKIE_NAME = 'admin_session';
+
+function getJwtSecret() {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is required to create administrative sessions.');
+  }
+  return JWT_SECRET;
+}
 
 export type AuthPayload = {
   userId: string;
@@ -25,10 +32,11 @@ export type AuthPayload = {
 };
 
 export function createToken(payload: AuthPayload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyToken(token: string): AuthPayload | null {
+  if (!JWT_SECRET) return null;
   try {
     return jwt.verify(token, JWT_SECRET) as AuthPayload;
   } catch {
@@ -112,7 +120,7 @@ export async function getAdminFromServerCookie() {
   if (!token) return null;
 
   const payload = verifyToken(token);
-  if (!payload) return null;
+  if (!payload || payload.role !== 'ADMIN') return null;
 
   return {
     id: payload.userId,

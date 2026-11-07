@@ -9,12 +9,12 @@ export default async function AdminPage() {
   
   // Se não tiver cookie, ainda assim renderiza o painel
   // O AdminPanel vai verificar o token no cliente
-  if (!admin) redirect('/admin/login');
+  if (!admin) redirect('/login/admin');
 
   return (
-    <div className="container mx-auto px-4">
+    <main className="container mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold mb-6">Painel do psicólogo</h1>
       <AdminPanel />
-    </div>
+    </main>
   );
 }
