@@ -58,7 +58,7 @@ export async function GET() {
 
   // Check if table exists by trying a simple query
   const { error: tableCheckError } = await supabase.from(config.table).select('count', { count: 'exact', head: true })
-  
+
   if (tableCheckError && tableCheckError.code === '42P01') { // undefined_table
      return new Response(`Error: The table '${config.table}' does not exist. Please run the 'keep-alive.sql' script in your Supabase SQL Editor to create it.`, { status: 500 })
   }

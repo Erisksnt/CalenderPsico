@@ -14,7 +14,7 @@ export default function Header({ settings }: { settings: SiteSettings }) {
       style={{ backgroundColor: settings.appearance.colors.surface }}
     >
       <nav className="w-full h-16 sm:h-24 relative flex items-center justify-between px-6 sm:px-12">
-        
+
         {/* LOGO: Tamanho compacto no mobile (fluxo normal) e grande com absolute no desktop */}
         <Link href="/" aria-label={settings.brand.name || 'Página inicial'} className="shrink-0 relative flex items-center">
           {settings.brand.logo_url ? (
