@@ -1,18 +1,29 @@
 /* app/globals.css */
-/* Estilos globais da aplicaÃ§Ã£o */
+/* Identidade Visual Sofisticada: Thaís Almeida Psicologia */
+/* Estilo & Inspiração Editorial: Isabella Orcioli */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-cherry: #C2183A;
-  --color-cherry-dark: #a0162f;
-  --color-ink: #101010;
-  --color-muted: #4d4d4d;
-  --color-surface: #ffffff;
-  --color-soft: #f7f6f5;
-  --shadow-soft: 0 18px 38px rgba(15, 15, 15, 0.08);
+  --color-marsala: #7C1D30;
+  --color-marsala-dark: #5C1020;
+  --color-marsala-light: #942B41;
+  --color-marsala-blush: #FAF0F2;
+  --color-cream: #FAF7F2;
+  --color-sand: #F4EFEA;
+  --color-offwhite: #FDFCF9;
+  --color-text-charcoal: #25181B;
+  --color-text-body: #604C51;
+  --color-text-muted: #8B7378;
+  --color-gold: #C8A27A;
+
+  /* Compatibilidade com componentes legados */
+  --color-cherry: #7C1D30;
+  --color-cherry-dark: #5C1020;
+  --color-rose-blush: #7C1D30;
+  --color-dusty-mauve: #942B41;
 }
 
 * {
@@ -23,129 +34,309 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
-  background: var(--color-soft);
-  color: var(--color-ink);
+  background-color: var(--color-offwhite);
+  color: var(--color-text-charcoal);
+  overflow-x: hidden;
 }
 
-a {
-  color: var(--color-cherry);
-  transition: color 0.2s ease;
+h1, h2, h3, h4, .font-serif, .font-display {
+  font-family: var(--site-heading-font, Georgia), Georgia, serif;
 }
 
-a:hover,
-button:hover {
-  color: var(--color-cherry-dark);
+.site-theme section[id] {
+  scroll-margin-top: 5.5rem;
 }
 
-button,
-.btn-primary {
-  cursor: pointer;
-  transition: all 0.25s ease;
+.site-theme h1 {
+  color: var(--site-text);
+  font-size: clamp(calc(var(--site-heading-font-size, 48px) * 0.75), 8vw, calc(var(--site-heading-font-size, 48px) * 1.2));
 }
 
-button:disabled,
-.btn-primary:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
+.site-theme h2:not(.text-sm) {
+  color: var(--site-text);
+  font-size: clamp(calc(var(--site-heading-font-size, 48px) * 0.67), 6vw, calc(var(--site-heading-font-size, 48px) * 1.05));
 }
 
-.btn-primary {
-  background: var(--color-cherry);
-  border: none;
-  color: white;
-  padding: 0.75rem 1.8rem;
-  border-radius: 999px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  box-shadow: 0 12px 30px rgba(194, 24, 58, 0.25);
+.site-theme h3 {
+  color: var(--site-text);
+  font-size: calc(var(--site-heading-font-size, 48px) * 0.58);
+}
+
+.site-theme h4 {
+  color: var(--site-text);
+  font-size: calc(var(--site-heading-font-size, 48px) * 0.5);
+}
+
+.site-theme p,
+.site-theme li,
+.site-theme dt,
+.site-theme dd {
+  font-size: var(--site-body-font-size, 16px);
+}
+
+.site-theme .text-white :is(h1, h2, h3, h4) {
+  color: inherit;
+}
+
+/* ─── BOTÕES DE ALTA SOFISTICAÇÃO ────────────────────────────────── */
+
+.btn-marsala {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.625rem;
+  background: linear-gradient(135deg, var(--site-accent, #8A2438) 0%, var(--site-accent-dark, #7C1D30) 100%);
+  color: #FFFFFF;
+  padding: 0.95rem 2.25rem;
+  border-radius: 9999px;
+  font-size: 0.925rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 25px -4px color-mix(in srgb, var(--site-accent, #7C1D30) 35%, transparent);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.btn-primary:hover {
-  background: var(--color-cherry-dark);
+.btn-marsala:hover {
+  background: linear-gradient(135deg, var(--site-accent, #7C1D30) 0%, var(--site-accent-dark, #5C1020) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -4px rgba(124, 29, 48, 0.45);
+  color: #FFFFFF;
 }
 
-input,
-textarea,
-select {
+.btn-marsala:active {
+  transform: translateY(0);
+}
+
+.btn-outline-marsala {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--site-accent, #7C1D30);
+  padding: 0.85rem 2rem;
+  border-radius: 9999px;
+  font-size: 0.925rem;
+  font-weight: 600;
+  border: 1.5px solid color-mix(in srgb, var(--site-accent, #7C1D30) 30%, transparent);
   transition: all 0.25s ease;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-  outline: 2px solid rgba(194, 24, 58, 0.4);
-  outline-offset: 2px;
+.btn-outline-marsala:hover {
+  border-color: var(--site-accent, #7C1D30);
+  background-color: color-mix(in srgb, var(--site-accent, #7C1D30) 5%, transparent);
+  color: var(--site-accent-dark, #5C1020);
+  transform: translateY(-1px);
 }
 
-/* Scrollbar */
+.btn-secondary-white {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  background: #FFFFFF;
+  color: #7C1D30;
+  padding: 0.95rem 2.25rem;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.btn-secondary-white:hover {
+  background: #FAF7F2;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+}
+
+/* Compatibilidade com botões legados */
+.btn-primary-rose {
+  @apply btn-marsala;
+}
+
+.btn-primary {
+  @apply btn-marsala;
+}
+
+/* ─── MOLDURAS DE FOTOS ESTILO EDITORIAL ───────────────────────── */
+
+/* Moldura Arco Clássico (Portal) */
+.frame-arch {
+  border-radius: 9999px 9999px 2rem 2rem;
+  box-shadow: 0 20px 50px -10px rgba(124, 29, 48, 0.18), 0 0 0 1px rgba(124, 29, 48, 0.08);
+}
+
+/* Moldura Arredondada Suave */
+.frame-rounded {
+  border-radius: 2.25rem;
+  box-shadow: 0 20px 50px -10px rgba(124, 29, 48, 0.15), 0 0 0 1px rgba(124, 29, 48, 0.08);
+}
+
+/* Moldura Oval Nobre */
+.frame-oval {
+  border-radius: 50%;
+  box-shadow: 0 20px 50px -10px rgba(124, 29, 48, 0.18), 0 0 0 1px rgba(124, 29, 48, 0.08);
+}
+
+/* Moldura Borda Dupla com Moldura Marsala/Dourada */
+.frame-bordered {
+  border-radius: 1.75rem;
+  padding: 0.625rem;
+  background: linear-gradient(135deg, rgba(200, 162, 122, 0.4) 0%, rgba(124, 29, 48, 0.2) 100%);
+  box-shadow: 0 20px 50px -10px rgba(124, 29, 48, 0.16);
+}
+
+.frame-bordered img, .frame-bordered .frame-inner {
+  border-radius: 1.25rem;
+}
+
+/* ─── COMPONENTES E DETALHES ────────────────────────────────────── */
+
+.badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--site-accent, #7C1D30);
+  background-color: color-mix(in srgb, var(--site-accent, #7C1D30) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--site-accent, #7C1D30) 15%, transparent);
+  padding: 0.45rem 1.1rem;
+  border-radius: 9999px;
+}
+
+.section-divider {
+  width: 3.5rem;
+  height: 2px;
+  background: linear-gradient(90deg, #7C1D30, #C8A27A);
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 9999px;
+}
+
+/* Scrollbar com o tom marsala */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #efefef;
+  background: #FAF7F2;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c4c4c4;
+  background: #CDB3B8;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9c9c9c;
+  background: #7C1D30;
 }
 
-.availability-checkbox {
-  appearance: none;
-  width: 1.2rem;
-  height: 1.2rem;
-  border-radius: 0.35rem;
-  border: 1px solid #d1d5db;
-  background-color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
-  position: relative;
-}
-
-.availability-checkbox::after {
-  content: '';
-  width: 0.35rem;
-  height: 0.65rem;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg) scale(0);
-  opacity: 0;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.availability-checkbox:checked {
-  border-color: var(--color-cherry);
-  background-color: var(--color-cherry);
-  box-shadow: 0 0 0 3px rgba(194, 24, 58, 0.1);
-}
-
-.availability-checkbox:checked::after {
-  transform: rotate(45deg) scale(1);
-  opacity: 1;
-}
-
-.availability-checkbox:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(194, 24, 58, 0.35);
-}
-
-
+/* Ocultar link de registro admin */
 a[href='/admin/register'] {
   display: none;
+}
+
+/* Reveals are enabled only after hydration, so content remains available without JS. */
+[data-scroll-reveal-ready] [data-scroll-reveal='pending'] {
+  opacity: 0;
+  --scroll-reveal-offset: 18px;
+  will-change: opacity, translate;
+}
+
+[data-scroll-reveal='visible'] {
+  animation: scroll-reveal-in 920ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes scroll-reveal-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--scroll-reveal-offset, 18px);
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+#inicio [data-hero-reveal='copy'] > *,
+#inicio [data-hero-reveal='portrait'] {
+  animation: hero-reveal-in 1250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+#inicio [data-hero-reveal='copy'] > :nth-child(1) { animation-delay: 80ms; }
+#inicio [data-hero-reveal='copy'] > :nth-child(2) { animation-delay: 200ms; }
+#inicio [data-hero-reveal='copy'] > :nth-child(3) { animation-delay: 320ms; }
+#inicio [data-hero-reveal='copy'] > :nth-child(4) { animation-delay: 440ms; }
+#inicio [data-hero-reveal='copy'] > :nth-child(5) { animation-delay: 560ms; }
+#inicio [data-hero-reveal='copy'] > :nth-child(6) { animation-delay: 680ms; }
+#inicio [data-hero-reveal='portrait'] { animation-delay: 360ms; }
+
+@keyframes hero-reveal-in {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (max-width: 640px) {
+  [data-scroll-reveal-ready] [data-scroll-reveal='pending'] {
+    --scroll-reveal-offset: 12px;
+  }
+
+  [data-scroll-reveal='visible'] {
+    animation-duration: 820ms;
+  }
+
+  #inicio [data-hero-reveal='copy'] > *,
+  #inicio [data-hero-reveal='portrait'] {
+    animation-duration: 1150ms;
+  }
+
+  #inicio [data-hero-reveal='copy'] > :nth-child(1) { animation-delay: 60ms; }
+  #inicio [data-hero-reveal='copy'] > :nth-child(2) { animation-delay: 160ms; }
+  #inicio [data-hero-reveal='copy'] > :nth-child(3) { animation-delay: 260ms; }
+  #inicio [data-hero-reveal='copy'] > :nth-child(4) { animation-delay: 360ms; }
+  #inicio [data-hero-reveal='copy'] > :nth-child(5) { animation-delay: 460ms; }
+  #inicio [data-hero-reveal='copy'] > :nth-child(6) { animation-delay: 560ms; }
+  #inicio [data-hero-reveal='portrait'] { animation-delay: 300ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  [data-scroll-reveal-ready] [data-scroll-reveal='pending'],
+  [data-scroll-reveal='visible'] {
+    opacity: 1;
+    translate: none;
+    animation: none;
+    will-change: auto;
+  }
+
+  #inicio [data-hero-reveal='copy'] > *,
+  #inicio [data-hero-reveal='portrait'] {
+    opacity: 1;
+    translate: none;
+    animation: none;
+  }
 }
