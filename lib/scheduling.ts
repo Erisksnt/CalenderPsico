@@ -31,6 +31,10 @@ async function resolvePsychologistId(psychologistId?: string) {
   return getCachedPsychologistId();
 }
 
+export async function getPrimaryPsychologistId() {
+  return getCachedPsychologistId();
+}
+
 export function toMinutes(time: string) {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
@@ -93,10 +97,10 @@ export async function getAvailableSlots(date: string, psychologistId?: string) {
     select: { hora: true, status: true },
   });
   
-  // 🔥 4. Criar Set APENAS com horários ocupados (excluindo cancelados/concluídos)
+  // Horários concluídos permanecem reservados para preservar o histórico do atendimento.
   const busyHours = new Set(
     appointments
-      .filter(apt => apt.status !== 'CANCELLED' && apt.status !== 'COMPLETED')
+      .filter((appointment) => appointment.status !== 'CANCELLED')
       .map(apt => apt.hora)
   );
 

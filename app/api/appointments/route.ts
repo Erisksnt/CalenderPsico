@@ -1,67 +1,12 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { AppointmentStatus } from '@prisma/client';
 import prisma, { isDatabaseConnectionError, createDatabaseUnavailableResponse } from '@/lib/database';
-import { getAuthenticatedUser } from '@/lib/auth';
 import { BookAppointmentSchema } from '@/lib/validators';
-import { getTodayISO } from '@/lib/scheduling';
+import { getTodayISO, getAvailableSlots, getPrimaryPsychologistId } from '@/lib/scheduling';
 import { invalidateAdminCache } from '@/lib/admin-cache';
 import { sendAppointmentRequestedEmail } from '@/lib/appointment-email';
-
-// ID FIXO do psicólogo (obtido uma vez e mantido)
-const PSYCHOLOGIST_ID = 'cmmw6oa2b0003132nw01wicuh';
-
-export async function GET(req: NextRequest) {
-  console.time("GET /api/appointments");
-  
-  try {
-    console.time("getAuthenticatedUser");
-    const user = await getAuthenticatedUser(req);
-    console.timeEnd("getAuthenticatedUser");
-    
-    if (!user?.psychologist) {
-      console.timeEnd("GET /api/appointments");
-      return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status');
-    const date = searchParams.get('date');
-
-    console.time("findAppointments");
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        psychologist_id: user.psychologist.id,
-        ...(status ? { status: status as any } : {}),
-        ...(date ? { data: date } : {}),
-      },
-      orderBy: [{ data: 'asc' }, { hora: 'asc' }],
-      select: {
-        id: true,
-        nome_paciente: true,
-        email: true,
-        telefone: true,
-        mensagem: true,
-        data: true,
-        hora: true,
-        status: true,
-        created_at: true
-      }
-    });
-    console.timeEnd("findAppointments");
-
-    console.timeEnd("GET /api/appointments");
-    return NextResponse.json({ success: true, data: appointments }, { status: 200 });
-  } catch (error) {
-    console.timeEnd("GET /api/appointments");
-    
-    if (isDatabaseConnectionError(error)) {
-      return createDatabaseUnavailableResponse();
-    }
-    console.error('Erro ao listar agendamentos:', error);
-    return NextResponse.json({ success: false, error: 'Erro interno do servidor' }, { status: 500 });
-  }
-}
 
 export async function POST(req: NextRequest) {
   console.time("POST /api/appointments");
@@ -85,47 +30,95 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Não é possível agendar em datas passadas' }, { status: 400 });
     }
 
-    // ✅ CRIA AGENDAMENTO (upsert)
+    const psychologistId = await getPrimaryPsychologistId();
+    if (!psychologistId) {
+      return NextResponse.json({ success: false, error: 'Agendamentos indisponíveis no momento.' }, { status: 503 });
+    }
+
+    const availableSlots = await getAvailableSlots(data, psychologistId);
+    if (!availableSlots.includes(hora)) {
+      return NextResponse.json({ success: false, error: 'Horário indisponível.' }, { status: 409 });
+    }
+
     console.time("createAppointment");
-    const appointment = await prisma.appointment.upsert({
-      where: {
-        psychologist_id_data_hora: {
-          psychologist_id: PSYCHOLOGIST_ID,
-          data: data,
-          hora: hora
-        }
-      },
-      update: {
-        nome_paciente: nome,
-        email,
-        telefone,
-        mensagem,
-        status: 'PENDING',
-        updated_at: new Date()
-      },
-      create: {
-        psychologist_id: PSYCHOLOGIST_ID,
-        nome_paciente: nome,
-        email,
-        telefone,
-        mensagem,
-        data,
-        hora,
-        status: 'PENDING',
-      },
-      select: {
-        id: true,
-        nome_paciente: true,
-        data: true,
-        hora: true,
-        status: true
-      }
+    const appointmentKey = {
+      psychologist_id_data_hora: { psychologist_id: psychologistId, data, hora },
+    };
+    const existing = await prisma.appointment.findUnique({
+      where: appointmentKey,
+      select: { id: true, status: true },
     });
+
+    const appointmentData = {
+      nome_paciente: nome,
+      email,
+      telefone,
+      mensagem,
+      status: 'PENDING' as const,
+      privacy_consent_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    let appointment: {
+      id: string;
+      nome_paciente: string;
+      data: string;
+      hora: string;
+      status: AppointmentStatus;
+    };
+    if (existing) {
+      if (existing.status !== 'CANCELLED') {
+        console.timeEnd("createAppointment");
+        console.timeEnd("POST /api/appointments");
+        return NextResponse.json({ success: false, error: 'Horário indisponível.' }, { status: 409 });
+      }
+
+      const rebooked = await prisma.appointment.updateMany({
+        where: { id: existing.id, status: 'CANCELLED' },
+        data: appointmentData,
+      });
+      if (rebooked.count !== 1) {
+        console.timeEnd("createAppointment");
+        console.timeEnd("POST /api/appointments");
+        return NextResponse.json({ success: false, error: 'Horário indisponível.' }, { status: 409 });
+      }
+
+      appointment = await prisma.appointment.findUniqueOrThrow({
+        where: { id: existing.id },
+        select: {
+          id: true,
+          nome_paciente: true,
+          data: true,
+          hora: true,
+          status: true,
+        },
+      });
+    } else {
+      appointment = await prisma.appointment.create({
+        data: {
+          psychologist_id: psychologistId,
+          nome_paciente: nome,
+          email,
+          telefone,
+          mensagem,
+          data,
+          hora,
+          privacy_consent_at: new Date(),
+          status: 'PENDING',
+        },
+        select: {
+          id: true,
+          nome_paciente: true,
+          data: true,
+          hora: true,
+          status: true,
+        },
+      });
+    }
     console.timeEnd("createAppointment");
 
     // INVALIDAR CACHE DO ADMIN
-    invalidateAdminCache(PSYCHOLOGIST_ID, '');
-    console.log(`🗑️ Cache invalidado para psicólogo ${PSYCHOLOGIST_ID}`);
+    invalidateAdminCache(psychologistId, '');
 
     try {
       await sendAppointmentRequestedEmail({

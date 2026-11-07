@@ -96,7 +96,7 @@ export default function BookingPage() {
   function closeSuccessModal() {
     setIsSuccessModalOpen(false);
     setSuccessModalText('');
-    
+
     // Recarrega a página
     window.location.reload();
   }
@@ -123,7 +123,7 @@ export default function BookingPage() {
         : 'nos dias marcados como disponíveis';
       setSlots([]);
       setSelected('');
-      setMessage(`O psicólogo atende apenas ${allowedDaysLabel}. Escolha outra data.`);
+      setMessage(`A psicóloga atende apenas ${allowedDaysLabel}. Escolha outra data.`);
       return;
     }
 
@@ -184,7 +184,7 @@ export default function BookingPage() {
       const response = await fetch('/api/public/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, data: date, hora: selected }),
+        body: JSON.stringify({ ...form, data: date, hora: selected, consent }),
       });
 
       const data = await response.json();
@@ -202,194 +202,254 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-3xl font-semibold text-[#101010]">Solicitar ambientação</h1>
-      <p className="text-[#4d4d4d]">
-        A ambientação é uma conversa inicial para você conhecer o psicólogo e entender se deseja iniciar o processo terapêutico.
-      </p>
+    <div className="min-h-screen bg-[#FAF6F1] pt-28 pb-20 px-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Header da página */}
+        <div className="text-center space-y-2 mb-10">
+          <p className="text-xs tracking-[0.4em] uppercase text-[#9E7B7B] font-medium">
+            Primeiro passo
+          </p>
+          <h1
+            className="text-3xl md:text-4xl font-semibold text-[#2D2020]"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+          >
+            Agendar consulta
+          </h1>
+          <p className="text-[#6B4F4F] max-w-md mx-auto">
+            A pré-consulta é uma conversa inicial para você conhecer a psicóloga e entender se deseja iniciar o processo terapêutico.
+          </p>
+        </div>
 
-      <div className="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm">
-        <label className="block font-semibold mb-3 uppercase tracking-[0.2em] text-[11px] text-[#4d4d4d]">
-          Escolha um dia para ambientação
-        </label>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => {
-            dateInputRef.current?.showPicker?.();
-            dateInputRef.current?.focus();
-          }}
-          onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
+        {/* CARD — Escolha de data */}
+        <div className="bg-white border border-[#C9A9A6]/20 p-6 rounded-2xl shadow-[0_2px_20px_rgba(201,169,166,0.1)]">
+          <label className="block font-semibold mb-3 uppercase tracking-[0.2em] text-[11px] text-[#9E7B7B]">
+            Escolha um dia
+          </label>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
               dateInputRef.current?.showPicker?.();
               dateInputRef.current?.focus();
-            }
-          }}
-          className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-[#101010] transition focus-within:border-[#C2183A] focus-within:ring-2 focus-within:ring-[#C2183A]/30"
-        >
-          <input
-            ref={dateInputRef}
-            type="date"
-            min={minDate}
-            value={date}
-            onChange={(e) => loadSlots(e.target.value)}
-            className="w-full appearance-none bg-transparent text-sm font-medium text-[#101010] outline-none"
-          />
+            }}
+            onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                dateInputRef.current?.showPicker?.();
+                dateInputRef.current?.focus();
+              }
+            }}
+            className="w-full rounded-xl border border-[#C9A9A6]/50 bg-white px-4 py-3 text-sm font-medium text-[#2D2020] transition focus-within:border-[#C9A9A6] focus-within:ring-2 focus-within:ring-[#C9A9A6]/20 cursor-pointer"
+          >
+            <input
+              ref={dateInputRef}
+              type="date"
+              min={minDate}
+              value={date}
+              onChange={(e) => loadSlots(e.target.value)}
+              className="w-full appearance-none bg-transparent text-sm font-medium text-[#2D2020] outline-none"
+            />
+          </div>
+
+          <div className="mt-4 space-y-1">
+            <p className="text-[11px] uppercase tracking-[0.4em] text-[#9E7B7B]">Dias disponíveis</p>
+            <div className="flex flex-wrap gap-2">
+              {WEEKDAY_SHORT.map((label, index) => {
+                const isEnabled = enabledWeekdays.includes(index);
+                return (
+                  <span
+                    key={label}
+                    title={WEEKDAY_FULL[index]}
+                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
+                      isEnabled
+                        ? 'border border-[#C9A9A6] bg-[#C9A9A6] text-white'
+                        : 'border border-[#C9A9A6]/20 bg-[#FAF6F1] text-[#9E7B7B]'
+                    }`}
+                  >
+                    {label}
+                  </span>
+                );
+              })}
+            </div>
+            {!availabilityLoaded && (
+              <p className="text-[11px] text-[#9E7B7B]">Carregando disponibilidade semanal...</p>
+            )}
+            {availabilityLoaded && !enabledWeekdays.length && (
+              <p className="text-[11px] text-[#9E7B7B]">Nenhum dia disponível foi configurado ainda.</p>
+            )}
+          </div>
         </div>
 
-        <div className="mt-4 space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.4em] text-[#4d4d4d]">Dias disponíveis</p>
-          <div className="flex flex-wrap gap-2">
-            {WEEKDAY_SHORT.map((label, index) => {
-              const isEnabled = enabledWeekdays.includes(index);
-              return (
-                <span
-                  key={label}
-                  title={WEEKDAY_FULL[index]}
-                  className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] transition ${
-                    isEnabled
-                      ? 'border border-[#C2183A] bg-[#C2183A] text-white'
-                      : 'border border-gray-200 bg-[#f7f7f7] text-[#4d4d4d]'
+        {/* CARD — Horários */}
+        {date && (
+          <div className="bg-white border border-[#C9A9A6]/20 p-6 rounded-2xl shadow-[0_2px_20px_rgba(201,169,166,0.1)] space-y-3">
+            <p
+              className="font-semibold text-[#2D2020]"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+            >
+              Horários disponíveis
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {visibleSlots.length === 0 && (
+                <span className="text-sm text-[#9E7B7B]">Sem horários livres para este dia.</span>
+              )}
+              {visibleSlots.map((slot) => (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => setSelected(slot)}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition focus-visible:outline-none ${
+                    selected === slot
+                      ? 'border border-[#C9A9A6] bg-[#C9A9A6] text-white shadow-md'
+                      : 'border border-[#C9A9A6]/40 text-[#6B4F4F] hover:border-[#C9A9A6] hover:bg-[#C9A9A6]/10'
                   }`}
                 >
-                  {label}
-                </span>
-              );
-            })}
+                  {slot}
+                </button>
+              ))}
+            </div>
           </div>
-          {!availabilityLoaded && (
-            <p className="text-[11px] text-[#4d4d4d]">Carregando disponibilidade semanal...</p>
-          )}
-          {availabilityLoaded && !enabledWeekdays.length && (
-            <p className="text-[11px] text-[#4d4d4d]">Nenhum dia disponível foi configurado ainda.</p>
-          )}
-        </div>
-      </div>
+        )}
 
-      {date && (
-        <div className="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm space-y-3">
-          <p className="font-semibold text-[#101010]">Horários disponíveis para ambientação</p>
-          <div className="flex flex-wrap gap-3">
-            {visibleSlots.length === 0 && (
-              <span className="text-sm text-[#4d4d4d]">Sem horários livres.</span>
-            )}
-            {visibleSlots.map((slot) => (
-              <button
-                key={slot}
-                type="button"
-                onClick={() => setSelected(slot)}
-                className={`px-3 py-2 rounded-full text-sm font-semibold transition focus-visible:outline-none ${
-                  selected === slot
-                    ? 'border border-[#C2183A] bg-[#C2183A] text-white'
-                    : 'border border-gray-200 text-[#101010] hover:border-[#C2183A]'
-                }`}
-              >
-                {slot}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selected && (
-        <div className="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm space-y-4">
-          <h2 className="font-semibold text-[#101010]">Seus dados para solicitar a ambientação</h2>
-          <input
-            placeholder="Nome"
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-[#101010] transition focus:border-[#C2183A] focus:ring-2 focus:ring-[#C2183A]/30"
-            value={form.nome}
-            onChange={(e) => setForm({ ...form, nome: e.target.value })}
-          />
-          <div>
-            <input
-              placeholder="Email"
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-[#101010] transition focus:border-[#C2183A] focus:ring-2 focus:ring-[#C2183A]/30"
-              value={form.email}
-              onChange={(e) => {
-                const value = e.target.value;
-                setForm({ ...form, email: value });
-                setFieldErrors((prev) => ({ ...prev, email: value ? validateEmail(value) : '' }));
-              }}
-            />
-            {fieldErrors.email && (
-              <p className="text-[11px] text-[#C2183A] mt-1">{fieldErrors.email}</p>
-            )}
-          </div>
-          <div>
-            <input
-              type="tel"
-              inputMode="numeric"
-              pattern="\d*"
-              maxLength={11}
-              placeholder="Telefone / WhatsApp"
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-[#101010] transition focus:border-[#C2183A] focus:ring-2 focus:ring-[#C2183A]/30"
-              value={form.telefone}
-              onChange={(e) => {
-                const digitsOnly = e.target.value.replace(/\D/g, '');
-                setForm({ ...form, telefone: digitsOnly });
-                setFieldErrors((prev) => ({
-                  ...prev,
-                  telefone: digitsOnly ? validatePhone(digitsOnly) : '',
-                }));
-              }}
-            />
-            {fieldErrors.telefone && (
-              <p className="text-[11px] text-[#C2183A] mt-1">{fieldErrors.telefone}</p>
-            )}
-          </div>
-          <textarea
-            placeholder="Mensagem opcional"
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-[#101010] transition focus:border-[#C2183A] focus:ring-2 focus:ring-[#C2183A]/30"
-            value={form.mensagem}
-            onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
-          />
-
-          {/* CHECKBOX DE CONSENTIMENTO */}
-          <div className="flex items-start gap-3 pt-2">
-            <input
-              type="checkbox"
-              id="consent"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-[#C2183A] focus:ring-[#C2183A]"
-            />
-            <label htmlFor="consent" className="text-sm text-gray-600 leading-relaxed">
-              Autorizo o uso dos meus dados (nome, email, telefone) exclusivamente para agendamento 
-              e comunicação sobre esta consulta. Entendo que meus dados não serão compartilhados com 
-              terceiros.
-            </label>
-          </div>
-
-          <button
-            disabled={!canSubmit}
-            onClick={submit}
-            className="w-full rounded-full px-4 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition disabled:bg-[#f5d9df] disabled:text-[#9c1d30] bg-[#C2183A] hover:bg-[#a0162f]"
-          >
-            Solicitar ambientação
-          </button>
-        </div>
-      )}
-
-      {message && (
-        <p className="text-sm font-medium text-[#4d4d4d] whitespace-pre-line">{message}</p>
-      )}
-
-      {isSuccessModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-2xl space-y-4" role="dialog" aria-modal="true">
-            <h3 className="text-xl font-semibold text-[#101010]">Solicitação enviada</h3>
-            <p className="text-sm leading-relaxed text-[#4d4d4d] whitespace-pre-line">{successModalText}</p>
-            <button
-              type="button"
-              onClick={closeSuccessModal}
-              className="w-full rounded-full bg-[#C2183A] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#a0162f]"
+        {/* CARD — Formulário */}
+        {selected && (
+          <div className="bg-white border border-[#C9A9A6]/20 p-6 rounded-2xl shadow-[0_2px_20px_rgba(201,169,166,0.1)] space-y-4">
+            <h2
+              className="font-semibold text-[#2D2020]"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
             >
-              Entendido
+              Seus dados
+            </h2>
+
+            <input
+              placeholder="Nome completo"
+              className="w-full rounded-xl border border-[#C9A9A6]/50 px-4 py-3 text-sm text-[#2D2020] outline-none transition focus:border-[#C9A9A6] focus:ring-2 focus:ring-[#C9A9A6]/20 placeholder:text-[#9E7B7B]/60"
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+            />
+
+            <div>
+              <input
+                placeholder="E-mail"
+                className="w-full rounded-xl border border-[#C9A9A6]/50 px-4 py-3 text-sm text-[#2D2020] outline-none transition focus:border-[#C9A9A6] focus:ring-2 focus:ring-[#C9A9A6]/20 placeholder:text-[#9E7B7B]/60"
+                value={form.email}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setForm({ ...form, email: value });
+                  setFieldErrors((prev) => ({ ...prev, email: value ? validateEmail(value) : '' }));
+                }}
+              />
+              {fieldErrors.email && (
+                <p className="text-[11px] text-[#C2183A] mt-1">{fieldErrors.email}</p>
+              )}
+            </div>
+
+            <div>
+              <input
+                type="tel"
+                inputMode="numeric"
+                pattern="\d*"
+                maxLength={11}
+                placeholder="Telefone / WhatsApp"
+                className="w-full rounded-xl border border-[#C9A9A6]/50 px-4 py-3 text-sm text-[#2D2020] outline-none transition focus:border-[#C9A9A6] focus:ring-2 focus:ring-[#C9A9A6]/20 placeholder:text-[#9E7B7B]/60"
+                value={form.telefone}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
+                  setForm({ ...form, telefone: digitsOnly });
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    telefone: digitsOnly ? validatePhone(digitsOnly) : '',
+                  }));
+                }}
+              />
+              {fieldErrors.telefone && (
+                <p className="text-[11px] text-[#C2183A] mt-1">{fieldErrors.telefone}</p>
+              )}
+            </div>
+
+            <textarea
+              placeholder="Mensagem opcional sobre contato ou disponibilidade"
+              rows={3}
+              aria-describedby="booking-message-help"
+              className="w-full rounded-xl border border-[#C9A9A6]/50 px-4 py-3 text-sm text-[#2D2020] outline-none transition focus:border-[#C9A9A6] focus:ring-2 focus:ring-[#C9A9A6]/20 placeholder:text-[#9E7B7B]/60 resize-none"
+              value={form.mensagem}
+              onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
+            />
+            <p id="booking-message-help" className="text-xs text-[#6B4F4F]">
+              Evite compartilhar informações clínicas ou outros dados sensíveis nesta etapa.
+            </p>
+
+            {/* CHECKBOX DE CONSENTIMENTO */}
+            <div className="flex items-start gap-3 pt-1">
+              <input
+                type="checkbox"
+                id="consent"
+                required
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-[#C9A9A6] text-[#C9A9A6] focus:ring-[#C9A9A6]"
+              />
+              <label htmlFor="consent" className="text-sm text-[#6B4F4F] leading-relaxed">
+                Autorizo o uso dos meus dados para o agendamento e comunicações sobre esta consulta,
+                inclusive o processamento necessário pelos provedores do sistema. Li a{' '}
+                <a className="underline" href="/privacidade">Política de Privacidade</a>.
+              </label>
+            </div>
+
+            <button
+              disabled={!canSubmit}
+              onClick={submit}
+              className="w-full rounded-full px-4 py-3 text-sm font-semibold tracking-wide text-white shadow-sm transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 bg-[#C9A9A6] hover:bg-[#9E7B7B] disabled:bg-[#C9A9A6]/50"
+            >
+              Solicitar ambientação
             </button>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Mensagem de erro/info */}
+        {message && (
+          <p className="text-sm font-medium text-[#6B4F4F] whitespace-pre-line bg-[#C9A9A6]/10 rounded-xl px-4 py-3 border border-[#C9A9A6]/20">
+            {message}
+          </p>
+        )}
+
+        {/* MODAL DE SUCESSO */}
+        {isSuccessModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2D2020]/60 backdrop-blur-sm px-4">
+            <div
+              className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-2xl space-y-5"
+              role="dialog"
+              aria-modal="true"
+            >
+              {/* Ícone */}
+              <div className="flex justify-center">
+                <div className="w-16 h-16 rounded-full bg-[#C9A9A6]/20 flex items-center justify-center">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="#C9A9A6" strokeWidth="1.5"/>
+                    <path d="M10 16l4 4 8-8" stroke="#C9A9A6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+              <h3
+                className="text-xl font-semibold text-[#2D2020] text-center"
+                style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+              >
+                Solicitação enviada!
+              </h3>
+              <p className="text-sm leading-relaxed text-[#6B4F4F] whitespace-pre-line text-center">
+                {successModalText}
+              </p>
+              <button
+                type="button"
+                onClick={closeSuccessModal}
+                className="w-full rounded-full bg-[#C9A9A6] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#9E7B7B]"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

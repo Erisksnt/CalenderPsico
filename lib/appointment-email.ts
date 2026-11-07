@@ -7,6 +7,7 @@ const SMTP_PORT = Number(process.env.SMTP_PORT ?? 0);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM = SMTP_USER; // Usar o mesmo email do usuário SMTP como remetente
+const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
 const DEFAULT_DURATION = Number(process.env.DEFAULT_SESSION_DURATION_MINUTES ?? 60);
 const DURATION_MINUTES =
   Number.isFinite(DEFAULT_DURATION) && DEFAULT_DURATION > 0 ? DEFAULT_DURATION : 60;
@@ -146,14 +147,15 @@ export async function sendAppointmentRequestedEmail(options: AppointmentRequeste
   const safePhone = options.patientPhone?.trim() || 'não informado';
 
   const subject = `Nova solicitação de ambientação de ${safePatientName}`;
+  const adminUrl = appUrl ? `${appUrl}/admin` : null;
   const html = `
     <p>Olá,</p>
     <p>O paciente <strong>${safePatientName}</strong> solicitou uma ambientação no dia <strong>${options.date}</strong> às <strong>${options.time}</strong>.</p>
     <p><strong>E-mail do paciente:</strong> ${options.patientEmail}</p>
     <p><strong>Telefone do paciente:</strong> ${safePhone}</p>
     ${safeNotes ? `<p><strong>Mensagem do paciente:</strong> ${safeNotes}</p>` : ''}
-    <p>Por favor, acesse o painel administrativo para aceitar ou cancelar esta solicitação. </p>
-    </p> https://psi-thaisalmeida.vercel.app/ </p>
+    <p>Por favor, acesse o painel administrativo para aceitar ou cancelar esta solicitação.</p>
+    ${adminUrl ? `<p><a href="${adminUrl}">Abrir painel administrativo</a></p>` : ''}
   `;
 
   const text = `Olá,
@@ -165,13 +167,14 @@ Telefone do paciente: ${safePhone}
 ${safeNotes ? `Mensagem do paciente: ${safeNotes}
 ` : ''}
 Acesse o painel administrativo para aceitar ou cancelar esta solicitação.`;
+  const textWithLink = adminUrl ? `${text}\n\nPainel administrativo: ${adminUrl}` : text;
 
   await transporter.sendMail({
     from: SMTP_FROM!,
     to: recipientEmail,
     subject,
     html,
-    text: text.trim(),
+    text: textWithLink.trim(),
   });
 }
 
