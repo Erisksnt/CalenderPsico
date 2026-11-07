@@ -102,6 +102,7 @@ model Appointment {
   mensagem        String?
   data            String
   hora            String
+  privacy_consent_at DateTime?
   status          AppointmentStatus @default(PENDING)
   created_at      DateTime          @default(now())
   updated_at      DateTime          @updatedAt
@@ -111,4 +112,44 @@ model Appointment {
   @@unique([psychologist_id, data, hora])
   @@index([psychologist_id, status, data])
   @@map("appointments")
+}
+
+model SiteContent {
+  id             String                @id @default("home")
+  draft_json     Json                  @default("{}") @db.JsonB
+  published_json Json                  @default("{}") @db.JsonB
+  version        Int                   @default(0)
+  published_at   DateTime?
+  created_at     DateTime              @default(now())
+  updated_at     DateTime              @updatedAt
+  revisions      SiteContentRevision[]
+
+  @@map("site_content")
+}
+
+model SiteContentRevision {
+  id         String      @id @default(cuid())
+  content_id String
+  version    Int
+  action     String
+  snapshot   Json        @db.JsonB
+  created_at DateTime    @default(now())
+  content    SiteContent @relation(fields: [content_id], references: [id], onDelete: Cascade)
+
+  @@unique([content_id, version])
+  @@index([content_id, created_at])
+  @@map("site_content_revisions")
+}
+
+model MediaAsset {
+  id          String   @id @default(cuid())
+  storage_key String   @unique
+  public_url  String   @unique
+  mime_type   String
+  byte_size   Int
+  alt_text    String   @default("")
+  created_at  DateTime @default(now())
+
+  @@index([created_at])
+  @@map("media_assets")
 }

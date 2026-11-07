@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: false,
   async headers() {
     return [
       // HEADERS DE SEGURANÇA PARA TODAS AS ROTAS
@@ -11,7 +10,7 @@ const nextConfig = {
           // Protege contra clickjacking
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
           // Evita MIME type sniffing
           {
@@ -43,7 +42,8 @@ const nextConfig = {
               "img-src 'self' data: blob: https:",
               "font-src 'self'",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io",
-              "frame-src 'none'",
+              "frame-src 'self'",
+              "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self'",
             ].join('; '),
