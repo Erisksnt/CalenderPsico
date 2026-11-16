@@ -31,7 +31,7 @@ export default function SitePreviewFrame({ settings }: { settings: SiteSettings 
   }, [ready, settings]);
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold">Preview mobile do rascunho</p>
         <a
@@ -43,13 +43,13 @@ export default function SitePreviewFrame({ settings }: { settings: SiteSettings 
           Abrir preview desktop
         </a>
       </div>
-      <div className="max-h-[75vh] overflow-auto rounded-xl border bg-white p-2">
+      <div className="flex min-h-0 flex-1 justify-center overflow-hidden rounded-xl border bg-white p-2">
         <iframe
           ref={frameRef}
           title="Preview completo do site"
           src="/admin/preview"
-          className="min-h-[70vh] border-0"
-          style={{ width: '390px', maxWidth: '100%' }}
+          className="h-full max-w-full border-0"
+          style={{ width: '390px' }}
         />
       </div>
     </div>
