@@ -48,7 +48,23 @@ function mergeSettings(base: unknown, override: unknown): unknown {
 }
 
 export function normalizeSiteSettings(value: unknown): SiteSettings {
-  const merged = mergeSettings(DEFAULT_SITE_SETTINGS, value);
+  let compatibleValue = value;
+  if (isRecord(value)) {
+    const compatibleRecord: Record<string, unknown> = { ...value };
+    if (isRecord(value.about) && !('paragraphs' in value.about)) {
+      compatibleRecord.about = {
+        ...value.about,
+        paragraphs: [value.about.paragraph_1, value.about.paragraph_2]
+          .filter((paragraph): paragraph is string => typeof paragraph === 'string' && paragraph.length > 0),
+      };
+    }
+    if (isRecord(value.method) && !('paragraphs' in value.method)) {
+      compatibleRecord.method = { ...value.method, paragraphs: [] };
+    }
+    compatibleValue = compatibleRecord;
+  }
+
+  const merged = mergeSettings(DEFAULT_SITE_SETTINGS, compatibleValue);
   if (isRecord(merged) && Array.isArray(merged.navigation) && merged.navigation.length === 0) {
     merged.navigation = DEFAULT_SITE_SETTINGS.navigation.map((item) => ({ ...item }));
   }

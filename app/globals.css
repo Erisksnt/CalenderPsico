@@ -55,22 +55,22 @@ h1, h2, h3, h4, .font-serif, .font-display {
 }
 
 .site-theme h1 {
-  color: var(--site-text);
+  color: var(--site-section-text, var(--site-text));
   font-size: clamp(calc(var(--site-heading-font-size, 48px) * 0.75), 8vw, calc(var(--site-heading-font-size, 48px) * 1.2));
 }
 
 .site-theme h2:not(.text-sm) {
-  color: var(--site-text);
+  color: var(--site-section-text, var(--site-text));
   font-size: clamp(calc(var(--site-heading-font-size, 48px) * 0.67), 6vw, calc(var(--site-heading-font-size, 48px) * 1.05));
 }
 
 .site-theme h3 {
-  color: var(--site-text);
+  color: var(--site-section-text, var(--site-text));
   font-size: calc(var(--site-heading-font-size, 48px) * 0.58);
 }
 
 .site-theme h4 {
-  color: var(--site-text);
+  color: var(--site-section-text, var(--site-text));
   font-size: calc(var(--site-heading-font-size, 48px) * 0.5);
 }
 

@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import type { SiteSectionId, SiteSettings } from '@/lib/site-settings-types';
-import PublicShell from '@/components/public/PublicShell';
+import PublicShell, { getSectionTypographyStyle } from '@/components/public/PublicShell';
+import RichText from '@/components/public/RichText';
 
 const SECTION_SPACING = {
   compact: 'py-12 sm:py-16',
@@ -17,7 +18,7 @@ function SectionHeading({
   eyebrow: string;
   title: string;
   description?: string;
-  alignment: 'left' | 'center';
+  alignment: SiteSettings['appearance']['alignment'][SiteSectionId];
 }) {
   return (
     <header
@@ -26,15 +27,15 @@ function SectionHeading({
     >
       {eyebrow && (
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-accent)]">
-          {eyebrow}
+          <RichText text={eyebrow} />
         </p>
       )}
       {title && (
         <h2 className="font-display text-3xl leading-tight text-[var(--site-text)] sm:text-4xl lg:text-5xl">
-          {title}
+          <RichText text={title} />
         </h2>
       )}
-      {description && <p className="text-base leading-relaxed opacity-80">{description}</p>}
+      {description && <p className="text-base leading-relaxed opacity-80"><RichText text={description} /></p>}
     </header>
   );
 }
@@ -73,7 +74,7 @@ function HeroSection({ settings }: { settings: SiteSettings }) {
     <section
       id="inicio"
       className={`relative isolate overflow-hidden px-6 ${SECTION_SPACING[appearance.section_spacing]} sm:px-10 lg:px-16`}
-      style={{ backgroundColor: appearance.colors.surface }}
+      style={{ ...getSectionTypographyStyle(settings, 'hero'), backgroundColor: appearance.colors.surface }}
     >
       <img
         src="/images/flor-liz.png"
@@ -89,43 +90,50 @@ function HeroSection({ settings }: { settings: SiteSettings }) {
         >
           {hero.badge && (
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-accent)]">
-              {hero.badge}
+              <RichText text={hero.badge} />
             </p>
           )}
           {(hero.title || hero.title_highlight) && (
             <h1 className="font-display text-4xl leading-[1.12] text-[var(--site-text)] sm:text-5xl lg:text-6xl">
-              {hero.title}{' '}
+              <RichText text={hero.title} />{' '}
               {hero.title_highlight && (
-                <span className="text-[var(--site-accent)]">{hero.title_highlight}</span>
+                <span className="text-[var(--site-accent)]"><RichText text={hero.title_highlight} /></span>
               )}
             </h1>
           )}
-          {hero.subtitle && <p className="max-w-2xl text-lg leading-relaxed opacity-80">{hero.subtitle}</p>}
+          {hero.subtitle && <p className="max-w-2xl text-lg leading-relaxed opacity-80"><RichText text={hero.subtitle} /></p>}
           {hero.specialties.length > 0 && (
             <ul className="flex flex-wrap gap-2" aria-label="Áreas de atendimento">
               {hero.specialties.map((item, index) => (
                 <li key={`${item}-${index}`} className="rounded-full border border-current/20 px-4 py-2 text-sm">
-                  {item}
+                  <RichText text={item} />
                 </li>
               ))}
             </ul>
           )}
           {hero.highlights.length > 0 && (
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm opacity-75">
-              {hero.highlights.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+              {hero.highlights.map((item, index) => <li key={`${item}-${index}`}><RichText text={item} /></li>)}
             </ul>
           )}
           <div
             className="flex flex-wrap gap-3 pt-2"
-            style={{ justifyContent: appearance.alignment.hero === 'center' ? 'center' : 'flex-start' }}
+            style={{
+              justifyContent: {
+                left: 'flex-start',
+                center: 'center',
+                right: 'flex-end',
+                justify: 'flex-start',
+              }[appearance.alignment.hero],
+            }}
           >
             {hero.cta_text && (
               <a className="btn-marsala" href={contactHref} target={contacts.whatsapp_link ? '_blank' : undefined} rel={contacts.whatsapp_link ? 'noopener noreferrer' : undefined}>
-                {hero.cta_text}
+                <RichText text={hero.cta_text} />
               </a>
             )}
             {hero.secondary_cta_text && (
-              <a className="btn-outline-marsala" href="#sobre">{hero.secondary_cta_text}</a>
+              <a className="btn-outline-marsala" href="#abordagem"><RichText text={hero.secondary_cta_text} /></a>
             )}
           </div>
         </div>
@@ -146,6 +154,7 @@ function AboutSection({ settings }: { settings: SiteSettings }) {
     <section
       id="sobre"
       className={`relative isolate px-6 ${SECTION_SPACING[settings.appearance.section_spacing]} sm:px-10 lg:px-16`}
+      style={getSectionTypographyStyle(settings, 'about')}
     >
       <img
         src="/images/borboleta.png"
@@ -160,25 +169,29 @@ function AboutSection({ settings }: { settings: SiteSettings }) {
         <div className="relative z-10 order-1 space-y-6" style={{ textAlign: settings.appearance.alignment.about }}>
           {about.badge && (
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--site-accent)]">
-              {about.badge}
+              <RichText text={about.badge} />
             </p>
           )}
-          {about.title && <h2 className="font-display text-3xl leading-tight sm:text-4xl">{about.title}</h2>}
-          {about.paragraph_1 && <p className="leading-relaxed opacity-80">{about.paragraph_1}</p>}
-          {about.paragraph_2 && <p className="leading-relaxed opacity-80">{about.paragraph_2}</p>}
+          {about.title && <h2 className="font-display text-3xl leading-tight sm:text-4xl"><RichText text={about.title} /></h2>}
+          {(about.paragraphs.length > 0
+            ? about.paragraphs
+            : [about.paragraph_1, about.paragraph_2].filter(Boolean)
+          ).map((paragraph, index) => (
+            <p key={`about-paragraph-${index}`} className="leading-relaxed opacity-80"><RichText text={paragraph} /></p>
+          ))}
           {about.work_method && (
             <p className="border-l-4 border-[var(--site-accent)] px-5 py-3 leading-relaxed">
-              {about.work_method}
+              <RichText text={about.work_method} />
             </p>
           )}
           {about.features.length > 0 && (
             <div className="space-y-3">
-              {about.features_heading && <h3 className="font-semibold">{about.features_heading}</h3>}
+              {about.features_heading && <h3 className="font-semibold"><RichText text={about.features_heading} /></h3>}
               <ul className="space-y-2">
                 {about.features.map((feature, index) => (
                   <li key={`${feature}-${index}`} className="flex gap-3">
                     <span aria-hidden="true" className="text-[var(--site-accent)]">•</span>
-                    <span>{feature}</span>
+                    <span><RichText text={feature} /></span>
                   </li>
                 ))}
               </ul>
@@ -186,7 +199,7 @@ function AboutSection({ settings }: { settings: SiteSettings }) {
           )}
           {about.cta_text && (
             <a className="btn-marsala" href={contacts.whatsapp_link || '/agendar'} target={contacts.whatsapp_link ? '_blank' : undefined} rel={contacts.whatsapp_link ? 'noopener noreferrer' : undefined}>
-              {about.cta_text}
+              <RichText text={about.cta_text} />
             </a>
           )}
         </div>
@@ -202,7 +215,7 @@ function AppointmentsSection({ settings }: { settings: SiteSettings }) {
     <section
       id="atendimentos"
       className={`relative isolate overflow-hidden px-6 ${SECTION_SPACING[appearance.section_spacing]} sm:px-10 lg:px-16`}
-      style={{ backgroundColor: appearance.colors.surface }}
+      style={{ ...getSectionTypographyStyle(settings, 'appointments'), backgroundColor: appearance.colors.surface }}
     >
       <img
         src="/images/flor-liz.png"
@@ -231,25 +244,25 @@ function AppointmentsSection({ settings }: { settings: SiteSettings }) {
               <dl className="space-y-2 text-lg">
                 {appointments.modality && (
                   <div className="flex flex-wrap gap-2">
-                    <dt className="font-semibold">{appointments.modality_label}</dt>
-                    <dd>{appointments.modality}</dd>
+                    <dt className="font-semibold"><RichText text={appointments.modality_label} /></dt>
+                    <dd><RichText text={appointments.modality} /></dd>
                   </div>
                 )}
                 {appointments.duration && (
                   <div className="flex flex-wrap gap-2">
-                    <dt className="font-semibold">{appointments.duration_label}</dt>
-                    <dd>{appointments.duration}</dd>
+                    <dt className="font-semibold"><RichText text={appointments.duration_label} /></dt>
+                    <dd><RichText text={appointments.duration} /></dd>
                   </div>
                 )}
               </dl>
             )}
             {appointments.paragraphs.map((text, index) => (
-              <p key={`main-${index}`} className="leading-relaxed opacity-80">{text}</p>
+              <p key={`main-${index}`} className="leading-relaxed opacity-80"><RichText text={text} /></p>
             ))}
           </div>
           <div className="space-y-6">
             {appointments.complementary_paragraphs.map((text, index) => (
-              <p key={`complementary-${index}`} className="leading-relaxed opacity-80">{text}</p>
+              <p key={`complementary-${index}`} className="leading-relaxed opacity-80"><RichText text={text} /></p>
             ))}
           </div>
         </div>
@@ -264,6 +277,7 @@ function MethodSection({ settings }: { settings: SiteSettings }) {
     <section
       id="abordagem"
       className={`relative isolate overflow-hidden px-6 ${SECTION_SPACING[appearance.section_spacing]} sm:px-10 lg:px-16`}
+      style={getSectionTypographyStyle(settings, 'method')}
     >
       <img
         src="/images/flor-liz.png"
@@ -278,6 +292,15 @@ function MethodSection({ settings }: { settings: SiteSettings }) {
           description={method.subtitle}
           alignment={appearance.alignment.method}
         />
+        {method.paragraphs.map((paragraph, index) => (
+          <p
+            key={`method-paragraph-${index}`}
+            className="mx-auto mb-6 max-w-3xl leading-relaxed opacity-80"
+            style={{ textAlign: appearance.alignment.method }}
+          >
+            <RichText text={paragraph} />
+          </p>
+        ))}
         {method.steps.length > 0 && (
           <ol className="mx-auto grid max-w-7xl gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {method.steps.map((step, index) => (
@@ -290,8 +313,8 @@ function MethodSection({ settings }: { settings: SiteSettings }) {
                 }}
               >
                 {step.number && <p className="mb-4 text-2xl font-semibold text-[var(--site-accent)]">{step.number}</p>}
-                {step.title && <h3 className="mb-3 font-display text-xl">{step.title}</h3>}
-                {step.description && <p className="text-sm leading-relaxed opacity-80">{step.description}</p>}
+                {step.title && <h3 className="mb-3 font-display text-xl"><RichText text={step.title} /></h3>}
+                {step.description && <p className="text-sm leading-relaxed opacity-80"><RichText text={step.description} /></p>}
               </li>
             ))}
           </ol>
@@ -307,7 +330,7 @@ function IdentificationSection({ settings }: { settings: SiteSettings }) {
     <section
       id="identificacao"
       className={`px-6 ${SECTION_SPACING[appearance.section_spacing]} sm:px-10 lg:px-16`}
-      style={{ backgroundColor: appearance.colors.surface }}
+      style={{ ...getSectionTypographyStyle(settings, 'identification'), backgroundColor: appearance.colors.surface }}
     >
       <SectionHeading
         eyebrow={identification.badge}
@@ -324,8 +347,8 @@ function IdentificationSection({ settings }: { settings: SiteSettings }) {
               style={{ textAlign: appearance.alignment.identification }}
             >
               {item.icon && <span className="mb-2 block text-2xl" aria-hidden="true">{item.icon}</span>}
-              {item.title && <h3 className="mb-2 font-semibold">{item.title}</h3>}
-              {item.description && <p className="leading-relaxed opacity-80">{item.description}</p>}
+              {item.title && <h3 className="mb-2 font-semibold"><RichText text={item.title} /></h3>}
+              {item.description && <p className="leading-relaxed opacity-80"><RichText text={item.description} /></p>}
             </li>
           ))}
         </ul>
@@ -335,13 +358,13 @@ function IdentificationSection({ settings }: { settings: SiteSettings }) {
           className="mx-auto mt-10 max-w-3xl font-display text-xl text-[var(--site-accent)]"
           style={{ textAlign: appearance.alignment.identification }}
         >
-          {identification.bottom_text}
+          <RichText text={identification.bottom_text} />
         </p>
       )}
       {identification.cta_text && (
         <div className="mt-8" style={{ textAlign: appearance.alignment.identification }}>
           <a className="btn-marsala" href={contacts.whatsapp_link || '/agendar'} target={contacts.whatsapp_link ? '_blank' : undefined} rel={contacts.whatsapp_link ? 'noopener noreferrer' : undefined}>
-            {identification.cta_text}
+            <RichText text={identification.cta_text} />
           </a>
         </div>
       )}
@@ -356,13 +379,14 @@ function ClosingSection({ settings }: { settings: SiteSettings }) {
       id="contato"
       className={`px-6 ${SECTION_SPACING[appearance.section_spacing]} text-white sm:px-10 lg:px-16`}
       style={{
+        ...getSectionTypographyStyle(settings, 'closing_cta'),
         backgroundColor: 'var(--site-accent)',
         textAlign: appearance.alignment.closing_cta,
       }}
     >
       <div className="mx-auto max-w-4xl space-y-6">
-        {closing_cta.title && <h2 className="font-display text-3xl leading-tight sm:text-4xl">{closing_cta.title}</h2>}
-        {closing_cta.subtitle && <p className="mx-auto max-w-3xl leading-relaxed opacity-90">{closing_cta.subtitle}</p>}
+        {closing_cta.title && <h2 className="font-display text-3xl leading-tight sm:text-4xl"><RichText text={closing_cta.title} /></h2>}
+        {closing_cta.subtitle && <p className="mx-auto max-w-3xl leading-relaxed opacity-90"><RichText text={closing_cta.subtitle} /></p>}
         {closing_cta.button_text && (
           <a
             className="inline-flex rounded-full bg-white px-8 py-3 font-semibold text-[var(--site-accent)]"
@@ -370,7 +394,7 @@ function ClosingSection({ settings }: { settings: SiteSettings }) {
             target={contacts.whatsapp_link ? '_blank' : undefined}
             rel={contacts.whatsapp_link ? 'noopener noreferrer' : undefined}
           >
-            {closing_cta.button_text}
+            <RichText text={closing_cta.button_text} />
           </a>
         )}
       </div>

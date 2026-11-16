@@ -8,6 +8,14 @@ export type SiteSectionId =
   | 'identification'
   | 'closing_cta';
 
+export interface SectionTypography {
+  heading_font: 'The Seasons' | 'Cormorant Garamond' | 'Playfair Display' | 'Georgia';
+  body_font: 'Garet' | 'Inter' | 'Montserrat' | 'Open Sans' | 'Arial';
+  heading_font_size: number;
+  body_font_size: number;
+  text_color: string;
+}
+
 export interface SiteSettings {
   brand: {
     name: string;
@@ -50,6 +58,7 @@ export interface SiteSettings {
     title: string;
     paragraph_1: string;
     paragraph_2: string;
+    paragraphs: string[];
     work_method: string;
     photo_url: string;
     photo_alt: string;
@@ -72,6 +81,7 @@ export interface SiteSettings {
     badge: string;
     title: string;
     subtitle: string;
+    paragraphs: string[];
     steps: Array<{
       number: string;
       title: string;
@@ -111,13 +121,14 @@ export interface SiteSettings {
       text: string;
       text_muted: string;
     };
-    alignment: Record<SiteSectionId, 'left' | 'center'>;
+    alignment: Record<SiteSectionId, 'left' | 'center' | 'right' | 'justify'>;
     section_spacing: 'compact' | 'comfortable' | 'spacious';
     decorative_dividers: boolean;
     heading_font: 'The Seasons' | 'Cormorant Garamond' | 'Playfair Display' | 'Georgia';
     body_font: 'Garet' | 'Inter' | 'Montserrat' | 'Open Sans' | 'Arial';
     heading_font_size: number;
     body_font_size: number;
+    section_typography: Record<SiteSectionId, SectionTypography>;
   };
   sections: {
     order: SiteSectionId[];
@@ -176,6 +187,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     title: '',
     paragraph_1: '',
     paragraph_2: '',
+    paragraphs: [],
     work_method: '',
     photo_url: '',
     photo_alt: '',
@@ -198,6 +210,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     badge: '',
     title: '',
     subtitle: '',
+    paragraphs: [],
     steps: [],
   },
   identification: {
@@ -243,6 +256,50 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     body_font: 'Inter',
     heading_font_size: 48,
     body_font_size: 16,
+    section_typography: {
+      hero: {
+        heading_font: 'Playfair Display',
+        body_font: 'Inter',
+        heading_font_size: 48,
+        body_font_size: 16,
+        text_color: '',
+      },
+      about: {
+        heading_font: 'Playfair Display',
+        body_font: 'Inter',
+        heading_font_size: 48,
+        body_font_size: 16,
+        text_color: '',
+      },
+      appointments: {
+        heading_font: 'Playfair Display',
+        body_font: 'Inter',
+        heading_font_size: 48,
+        body_font_size: 16,
+        text_color: '',
+      },
+      method: {
+        heading_font: 'Playfair Display',
+        body_font: 'Inter',
+        heading_font_size: 48,
+        body_font_size: 16,
+        text_color: '',
+      },
+      identification: {
+        heading_font: 'Playfair Display',
+        body_font: 'Inter',
+        heading_font_size: 48,
+        body_font_size: 16,
+        text_color: '',
+      },
+      closing_cta: {
+        heading_font: 'Playfair Display',
+        body_font: 'Inter',
+        heading_font_size: 48,
+        body_font_size: 16,
+        text_color: '',
+      },
+    },
   },
   sections: {
     order: SITE_SECTION_IDS,

@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import type { SiteSettings } from '@/lib/site-settings-types';
+import type { SiteSectionId, SiteSettings } from '@/lib/site-settings-types';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import SocialFloat from '@/components/shared/SocialFloat';
@@ -19,6 +19,21 @@ const BODY_FONT_STACKS: Record<SiteSettings['appearance']['body_font'], string> 
   'Open Sans': '"Open Sans", "Segoe UI", Arial, sans-serif',
   Arial: 'Arial, sans-serif',
 };
+
+export function getSectionTypographyStyle(
+  settings: SiteSettings,
+  section: SiteSectionId,
+): CSSProperties {
+  const typography = settings.appearance.section_typography[section];
+  return {
+    '--site-heading-font': HEADING_FONT_STACKS[typography.heading_font],
+    '--site-heading-font-size': `${typography.heading_font_size}px`,
+    '--site-body-font-size': `${typography.body_font_size}px`,
+    '--site-section-text': typography.text_color || undefined,
+    color: typography.text_color || undefined,
+    fontFamily: BODY_FONT_STACKS[typography.body_font],
+  } as CSSProperties;
+}
 
 export default function PublicShell({
   settings,

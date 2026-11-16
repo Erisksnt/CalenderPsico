@@ -1,9 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { SiteSettings, PhotoFrameStyle } from '@/lib/site-settings-types';
+import type {
+  PhotoFrameStyle,
+  SectionTypography,
+  SiteSectionId,
+  SiteSettings,
+} from '@/lib/site-settings-types';
 import { DEFAULT_SITE_SETTINGS, SITE_SECTION_IDS } from '@/lib/site-settings-types';
 import SitePreviewFrame from '@/components/admin/SitePreviewFrame';
+import RichTextInput from '@/components/admin/RichTextInput';
 
 const WEEKDAY_OPTIONS = [
   { value: 'MONDAY', label: 'Segunda-feira' },
@@ -23,6 +29,20 @@ const SECTION_LABELS = {
   identification: 'Identificação',
   closing_cta: 'Chamada para contato',
 } as const;
+
+const HEADING_FONT_OPTIONS: SectionTypography['heading_font'][] = [
+  'The Seasons',
+  'Cormorant Garamond',
+  'Playfair Display',
+  'Georgia',
+];
+const BODY_FONT_OPTIONS: SectionTypography['body_font'][] = [
+  'Garet',
+  'Inter',
+  'Montserrat',
+  'Open Sans',
+  'Arial',
+];
 
 const WEEKDAY_LABELS = WEEKDAY_OPTIONS.reduce<Record<string, string>>((map, option) => {
   map[option.value] = option.label;
@@ -76,6 +96,104 @@ const statusLabel: Record<Appointment['status'], string> = {
   COMPLETED: 'Atendimento Realizado',
 };
 
+function SectionTypographyControls({
+  section,
+  typography,
+  onChange,
+}: {
+  section: SiteSectionId;
+  typography: SectionTypography;
+  onChange: (typography: SectionTypography) => void;
+}) {
+  return (
+    <fieldset className="space-y-4 rounded-2xl border border-[#7C1D30]/15 bg-[#FAF7F2] p-4">
+      <legend className="px-1 text-sm font-semibold">
+        Tipografia desta seção — {SECTION_LABELS[section]}
+      </legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="space-y-1 text-xs font-semibold">
+          Fonte dos títulos
+          <select
+            value={typography.heading_font}
+            onChange={(event) => onChange({
+              ...typography,
+              heading_font: event.target.value as SectionTypography['heading_font'],
+            })}
+            className="w-full rounded-xl border p-3 text-sm font-normal"
+          >
+            {HEADING_FONT_OPTIONS.map((font) => <option key={font} value={font}>{font}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1 text-xs font-semibold">
+          Fonte dos textos
+          <select
+            value={typography.body_font}
+            onChange={(event) => onChange({
+              ...typography,
+              body_font: event.target.value as SectionTypography['body_font'],
+            })}
+            className="w-full rounded-xl border p-3 text-sm font-normal"
+          >
+            {BODY_FONT_OPTIONS.map((font) => <option key={font} value={font}>{font}</option>)}
+          </select>
+        </label>
+        <label className="space-y-2 text-xs font-semibold">
+          Tamanho dos títulos: {typography.heading_font_size}px
+          <input
+            type="range"
+            min="18"
+            max="72"
+            step="1"
+            value={typography.heading_font_size}
+            onChange={(event) => onChange({
+              ...typography,
+              heading_font_size: Number(event.target.value),
+            })}
+            className="w-full accent-[#7C1D30]"
+          />
+        </label>
+        <label className="space-y-2 text-xs font-semibold">
+          Tamanho dos textos: {typography.body_font_size}px
+          <input
+            type="range"
+            min="12"
+            max="28"
+            step="1"
+            value={typography.body_font_size}
+            onChange={(event) => onChange({
+              ...typography,
+              body_font_size: Number(event.target.value),
+            })}
+            className="w-full accent-[#7C1D30]"
+          />
+        </label>
+        <label className="flex items-center justify-between gap-3 rounded-xl border bg-white p-3 text-xs font-semibold sm:col-span-2">
+          Cor de todos os textos desta seção
+          <span className="flex items-center gap-2">
+            <input
+              type="color"
+              aria-label={`Cor dos textos da seção ${SECTION_LABELS[section]}`}
+              value={typography.text_color || '#604C51'}
+              onChange={(event) => onChange({
+                ...typography,
+                text_color: event.target.value,
+              })}
+              className="h-9 w-10 cursor-pointer rounded border p-0.5"
+            />
+            <button
+              type="button"
+              onClick={() => onChange({ ...typography, text_color: '' })}
+              className="rounded border px-2 py-1 text-xs font-normal"
+            >
+              Cor padrão
+            </button>
+          </span>
+        </label>
+      </div>
+    </fieldset>
+  );
+}
+
 function EditableStringList({
   label,
   values,
@@ -89,15 +207,17 @@ function EditableStringList({
     <fieldset className="space-y-3">
       <legend className="text-sm font-semibold">{label}</legend>
       {values.map((value, index) => (
-        <div key={`${index}-${value.slice(0, 12)}`} className="flex items-start gap-2">
+        <div key={index} className="flex items-start gap-2">
           <label className="sr-only">{`${label}, item ${index + 1}`}</label>
-          <textarea
+          <RichTextInput
             rows={2}
-            className="min-w-0 flex-1 rounded-xl border p-3 text-sm"
+            className="rounded-xl border p-3 text-sm"
+            containerClassName="flex-1"
+            aria-label={`${label}, item ${index + 1}`}
             value={value}
-            onChange={(event) => {
+            onChange={(updatedValue) => {
               const next = [...values];
-              next[index] = event.target.value;
+              next[index] = updatedValue;
               onChange(next);
             }}
           />
@@ -128,6 +248,7 @@ export default function AdminPanel() {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [hasUnpublishedChanges, setHasUnpublishedChanges] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [discardingSettings, setDiscardingSettings] = useState(false);
   const [editorSection, setEditorSection] = useState<'hero' | 'about' | 'appointments' | 'method' | 'identification' | 'cta' | 'layout'>('hero');
   const [showLivePreview, setShowLivePreview] = useState(false);
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
@@ -271,6 +392,8 @@ export default function AdminPanel() {
 
   async function discardSettings() {
     if (!window.confirm('Descartar todas as alterações não publicadas?')) return;
+    setDiscardingSettings(true);
+    setMessage(null);
     try {
       const response = await fetch('/api/admin/site-settings', {
         method: 'POST',
@@ -278,6 +401,10 @@ export default function AdminPanel() {
         body: JSON.stringify({ action: 'discard' }),
       });
       const result = await response.json();
+      if (response.status === 401) {
+        window.location.assign('/login/admin');
+        return;
+      }
       if (!response.ok) throw new Error(result.error || 'Não foi possível descartar o rascunho.');
       setSettings(result.settings);
       setHasUnpublishedChanges(false);
@@ -287,6 +414,8 @@ export default function AdminPanel() {
         type: 'error',
         text: error instanceof Error ? error.message : 'Não foi possível descartar o rascunho.',
       });
+    } finally {
+      setDiscardingSettings(false);
     }
   }
 
@@ -822,10 +951,10 @@ export default function AdminPanel() {
               <button
                 type="button"
                 onClick={discardSettings}
-                disabled={!hasUnpublishedChanges || savingSettings}
+                disabled={savingSettings || discardingSettings}
                 className="rounded-full border border-red-300 px-4 py-2.5 text-xs font-semibold text-red-700 disabled:opacity-50"
               >
-                Descartar
+                {discardingSettings ? 'Descartando...' : 'Descartar'}
               </button>
             </div>
           </div>
@@ -896,7 +1025,7 @@ export default function AdminPanel() {
             ))}
           </div>
 
-          <div className={`grid grid-cols-1 ${showLivePreview ? 'lg:grid-cols-2' : ''} gap-8`}>
+          <div className={`grid grid-cols-1 ${showLivePreview ? 'lg:grid-cols-[minmax(0,1fr)_410px]' : ''} gap-8`}>
             {/* FORMULÁRIO DE EDIÇÃO POR SEÇÃO */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#7C1D30]/15 shadow-sm space-y-6">
               {/* 1. SEÇÃO HERO */}
@@ -906,6 +1035,20 @@ export default function AdminPanel() {
                     <h3 className="font-bold text-lg text-[#25181B]">Seção Principal (Hero)</h3>
                     <p className="text-xs text-[#8B7378]">Primeira impressão do seu site ao carregar.</p>
                   </div>
+                  <SectionTypographyControls
+                    section="hero"
+                    typography={settings.appearance.section_typography.hero}
+                    onChange={(typography) => setSettings({
+                      ...settings,
+                      appearance: {
+                        ...settings.appearance,
+                        section_typography: {
+                          ...settings.appearance.section_typography,
+                          hero: typography,
+                        },
+                      },
+                    })}
+                  />
 
                   {/* Foto da Hero e Moldura */}
                   <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#7C1D30]/15 space-y-4">
@@ -1033,14 +1176,14 @@ export default function AdminPanel() {
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">
                         Selo Superior (Badge):
                       </label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={1}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.hero.badge}
-                        onChange={(e) =>
+                        onChange={(badge) =>
                           setSettings({
                             ...settings,
-                            hero: { ...settings.hero, badge: e.target.value },
+                            hero: { ...settings.hero, badge },
                           })
                         }
                       />
@@ -1050,14 +1193,14 @@ export default function AdminPanel() {
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">
                         Título Principal:
                       </label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={2}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.hero.title}
-                        onChange={(e) =>
+                        onChange={(title) =>
                           setSettings({
                             ...settings,
-                            hero: { ...settings.hero, title: e.target.value },
+                            hero: { ...settings.hero, title },
                           })
                         }
                       />
@@ -1067,14 +1210,14 @@ export default function AdminPanel() {
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">
                         Destaque em Itálico do Título (tom Marsala):
                       </label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={1}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.hero.title_highlight}
-                        onChange={(e) =>
+                        onChange={(title_highlight) =>
                           setSettings({
                             ...settings,
-                            hero: { ...settings.hero, title_highlight: e.target.value },
+                            hero: { ...settings.hero, title_highlight },
                           })
                         }
                       />
@@ -1084,14 +1227,14 @@ export default function AdminPanel() {
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">
                         Subtítulo / Descrição:
                       </label>
-                      <textarea
+                      <RichTextInput
                         rows={3}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.hero.subtitle}
-                        onChange={(e) =>
+                        onChange={(subtitle) =>
                           setSettings({
                             ...settings,
-                            hero: { ...settings.hero, subtitle: e.target.value },
+                            hero: { ...settings.hero, subtitle },
                           })
                         }
                       />
@@ -1101,18 +1244,30 @@ export default function AdminPanel() {
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">
                         Texto do Botão de Agendamento:
                       </label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={1}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.hero.cta_text}
-                        onChange={(e) =>
+                        onChange={(cta_text) =>
                           setSettings({
                             ...settings,
-                            hero: { ...settings.hero, cta_text: e.target.value },
+                            hero: { ...settings.hero, cta_text },
                           })
                         }
                       />
                     </div>
+                    <label className="block text-xs font-semibold text-[#25181B]">
+                      Texto do botão para conhecer a abordagem
+                      <RichTextInput
+                        rows={1}
+                        className="mt-1 w-full rounded-xl border p-3 text-sm font-normal"
+                        value={settings.hero.secondary_cta_text}
+                        onChange={(secondary_cta_text) => setSettings({
+                          ...settings,
+                          hero: { ...settings.hero, secondary_cta_text },
+                        })}
+                      />
+                    </label>
 
                     <EditableStringList
                       label="Especialidades ou tópicos do Hero"
@@ -1139,6 +1294,20 @@ export default function AdminPanel() {
                     <h3 className="font-bold text-lg text-[#25181B]">Seção Sobre Mim</h3>
                     <p className="text-xs text-[#8B7378]">Conte sua história, missão e diferenciais clínicos.</p>
                   </div>
+                  <SectionTypographyControls
+                    section="about"
+                    typography={settings.appearance.section_typography.about}
+                    onChange={(typography) => setSettings({
+                      ...settings,
+                      appearance: {
+                        ...settings.appearance,
+                        section_typography: {
+                          ...settings.appearance.section_typography,
+                          about: typography,
+                        },
+                      },
+                    })}
+                  />
 
                   {/* Foto da Seção Sobre e Moldura */}
                   <div className="p-5 rounded-2xl bg-[#FAF7F2] border border-[#7C1D30]/15 space-y-4">
@@ -1265,89 +1434,71 @@ export default function AdminPanel() {
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">
                         Título da Seção Sobre:
                       </label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={2}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.about.title}
-                        onChange={(e) =>
+                        onChange={(title) =>
                           setSettings({
                             ...settings,
-                            about: { ...settings.about, title: e.target.value },
+                            about: { ...settings.about, title },
                           })
                         }
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-[#25181B] mb-1">
-                        Primeiro Parágrafo da Biografia:
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
-                        value={settings.about.paragraph_1}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            about: { ...settings.about, paragraph_1: e.target.value },
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-[#25181B] mb-1">
-                        Segundo Parágrafo:
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
-                        value={settings.about.paragraph_2}
-                        onChange={(e) =>
-                          setSettings({
-                            ...settings,
-                            about: { ...settings.about, paragraph_2: e.target.value },
-                          })
-                        }
-                      />
-                    </div>
+                    <EditableStringList
+                      label="Parágrafos da biografia"
+                      values={settings.about.paragraphs.length > 0
+                        ? settings.about.paragraphs
+                        : [settings.about.paragraph_1, settings.about.paragraph_2].filter(Boolean)}
+                      onChange={(paragraphs) => setSettings({
+                        ...settings,
+                        about: {
+                          ...settings.about,
+                          paragraphs,
+                          paragraph_1: '',
+                          paragraph_2: '',
+                        },
+                      })}
+                    />
 
                     <div>
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">
                         Método de Atuação:
                       </label>
-                      <textarea
+                      <RichTextInput
                         rows={2}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.about.work_method}
-                        onChange={(e) =>
+                        onChange={(work_method) =>
                           setSettings({
                             ...settings,
-                            about: { ...settings.about, work_method: e.target.value },
+                            about: { ...settings.about, work_method },
                           })
                         }
                       />
                     </div>
                     <label className="block space-y-1 text-xs font-semibold">
                       Título curto da seção
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={1}
                         value={settings.about.badge}
-                        onChange={(event) => setSettings({
+                        onChange={(badge) => setSettings({
                           ...settings,
-                          about: { ...settings.about, badge: event.target.value },
+                          about: { ...settings.about, badge },
                         })}
                         className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
                     </label>
                     <label className="block space-y-1 text-xs font-semibold">
                       Título da lista de diferenciais
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={1}
                         value={settings.about.features_heading}
-                        onChange={(event) => setSettings({
+                        onChange={(features_heading) => setSettings({
                           ...settings,
-                          about: { ...settings.about, features_heading: event.target.value },
+                          about: { ...settings.about, features_heading },
                         })}
                         className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
@@ -1362,12 +1513,12 @@ export default function AdminPanel() {
                     />
                     <label className="block space-y-1 text-xs font-semibold">
                       Texto do botão de contato
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={1}
                         value={settings.about.cta_text}
-                        onChange={(event) => setSettings({
+                        onChange={(cta_text) => setSettings({
                           ...settings,
-                          about: { ...settings.about, cta_text: event.target.value },
+                          about: { ...settings.about, cta_text },
                         })}
                         className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
@@ -1383,6 +1534,20 @@ export default function AdminPanel() {
                     <h3 className="text-lg font-bold">Como são os atendimentos?</h3>
                     <p className="text-sm text-gray-600">Edite modalidade, duração e textos de cada coluna.</p>
                   </div>
+                  <SectionTypographyControls
+                    section="appointments"
+                    typography={settings.appearance.section_typography.appointments}
+                    onChange={(typography) => setSettings({
+                      ...settings,
+                      appearance: {
+                        ...settings.appearance,
+                        section_typography: {
+                          ...settings.appearance.section_typography,
+                          appointments: typography,
+                        },
+                      },
+                    })}
+                  />
                   {([
                     ['badge', 'Identificador da seção'],
                     ['title', 'Título'],
@@ -1393,13 +1558,14 @@ export default function AdminPanel() {
                   ] as const).map(([field, label]) => (
                     <label key={field} className="block space-y-1 text-sm font-semibold">
                       {label}
-                      <input
+                      <RichTextInput
+                        rows={1}
                         value={settings.appointments[field]}
-                        onChange={(event) => setSettings({
+                        onChange={(value) => setSettings({
                           ...settings,
-                          appointments: { ...settings.appointments, [field]: event.target.value },
+                          appointments: { ...settings.appointments, [field]: value },
                         })}
-                        className="w-full rounded-xl border p-3 font-normal"
+                        className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
                     </label>
                   ))}
@@ -1429,37 +1595,74 @@ export default function AdminPanel() {
                     <h3 className="font-bold text-lg text-[#25181B]">Método e Abordagem</h3>
                     <p className="text-xs text-[#8B7378]">Explique como funciona o processo psicoterapêutico.</p>
                   </div>
+                  <SectionTypographyControls
+                    section="method"
+                    typography={settings.appearance.section_typography.method}
+                    onChange={(typography) => setSettings({
+                      ...settings,
+                      appearance: {
+                        ...settings.appearance,
+                        section_typography: {
+                          ...settings.appearance.section_typography,
+                          method: typography,
+                        },
+                      },
+                    })}
+                  />
 
                   <div className="space-y-4">
+                    <label className="block space-y-1 text-xs font-semibold text-[#25181B]">
+                      Identificador da seção
+                      <RichTextInput
+                        rows={1}
+                        value={settings.method.badge}
+                        onChange={(badge) => setSettings({
+                          ...settings,
+                          method: { ...settings.method, badge },
+                        })}
+                        className="w-full rounded-xl border p-3 text-sm font-normal"
+                      />
+                    </label>
                     <div>
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">Título:</label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={2}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.method.title}
-                        onChange={(e) =>
+                        onChange={(title) =>
                           setSettings({
                             ...settings,
-                            method: { ...settings.method, title: e.target.value },
+                            method: { ...settings.method, title },
                           })
                         }
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#25181B] mb-1">Subtítulo:</label>
-                      <input
-                        type="text"
+                      <label className="block text-xs font-semibold text-[#25181B] mb-1">
+                        Como trabalhamos / apresentação da abordagem:
+                      </label>
+                      <RichTextInput
+                        rows={3}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.method.subtitle}
-                        onChange={(e) =>
+                        onChange={(subtitle) =>
                           setSettings({
                             ...settings,
-                            method: { ...settings.method, subtitle: e.target.value },
+                            method: { ...settings.method, subtitle },
                           })
                         }
                       />
                     </div>
+
+                    <EditableStringList
+                      label="Parágrafos adicionais do método"
+                      values={settings.method.paragraphs}
+                      onChange={(paragraphs) => setSettings({
+                        ...settings,
+                        method: { ...settings.method, paragraphs },
+                      })}
+                    />
 
                     <div className="space-y-3 pt-3">
                       <p className="text-xs font-bold uppercase tracking-wider text-[#7C1D30]">
@@ -1469,13 +1672,13 @@ export default function AdminPanel() {
                         <div key={i} className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#7C1D30]/15 space-y-2">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-xs text-[#7C1D30]">{st.number}</span>
-                            <input
-                              type="text"
+                            <RichTextInput
+                              rows={1}
                               className="w-full p-2 rounded-lg border border-gray-200 text-xs font-semibold"
                               value={st.title}
-                              onChange={(e) => {
+                              onChange={(title) => {
                                 const nextSteps = [...settings.method.steps];
-                                nextSteps[i] = { ...st, title: e.target.value };
+                                nextSteps[i] = { ...st, title };
                                 setSettings({
                                   ...settings,
                                   method: { ...settings.method, steps: nextSteps },
@@ -1483,13 +1686,14 @@ export default function AdminPanel() {
                               }}
                             />
                           </div>
-                          <textarea
+                          <RichTextInput
                             rows={2}
                             className="w-full p-2 rounded-lg border border-gray-200 text-xs text-[#604C51]"
+                            aria-label={`Descrição da etapa ${i + 1}`}
                             value={st.description}
-                            onChange={(e) => {
+                            onChange={(description) => {
                               const nextSteps = [...settings.method.steps];
-                              nextSteps[i] = { ...st, description: e.target.value };
+                              nextSteps[i] = { ...st, description };
                               setSettings({
                                 ...settings,
                                 method: { ...settings.method, steps: nextSteps },
@@ -1551,18 +1755,32 @@ export default function AdminPanel() {
                     <h3 className="font-bold text-lg text-[#25181B]">Seção &quot;Você se Identifica?&quot;</h3>
                     <p className="text-xs text-[#8B7378]">Dores e situações com as quais o paciente se identifica.</p>
                   </div>
+                  <SectionTypographyControls
+                    section="identification"
+                    typography={settings.appearance.section_typography.identification}
+                    onChange={(typography) => setSettings({
+                      ...settings,
+                      appearance: {
+                        ...settings.appearance,
+                        section_typography: {
+                          ...settings.appearance.section_typography,
+                          identification: typography,
+                        },
+                      },
+                    })}
+                  />
 
                   <div className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">Título:</label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={2}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.identification.title}
-                        onChange={(e) =>
+                        onChange={(title) =>
                           setSettings({
                             ...settings,
-                            identification: { ...settings.identification, title: e.target.value },
+                            identification: { ...settings.identification, title },
                           })
                         }
                       />
@@ -1570,22 +1788,24 @@ export default function AdminPanel() {
 
                     <label className="block space-y-1 text-xs font-semibold">
                       Identificador da seção
-                      <input
+                      <RichTextInput
+                        rows={1}
                         value={settings.identification.badge}
-                        onChange={(e) => setSettings({
+                        onChange={(badge) => setSettings({
                           ...settings,
-                          identification: { ...settings.identification, badge: e.target.value },
+                          identification: { ...settings.identification, badge },
                         })}
                         className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
                     </label>
                     <label className="block space-y-1 text-xs font-semibold">
                       Subtítulo
-                      <textarea
+                      <RichTextInput
+                        rows={3}
                         value={settings.identification.subtitle}
-                        onChange={(e) => setSettings({
+                        onChange={(subtitle) => setSettings({
                           ...settings,
-                          identification: { ...settings.identification, subtitle: e.target.value },
+                          identification: { ...settings.identification, subtitle },
                         })}
                         className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
@@ -1593,14 +1813,16 @@ export default function AdminPanel() {
                     <fieldset className="space-y-3">
                       <legend className="text-sm font-semibold">Cards de identificação</legend>
                       {settings.identification.items.map((item, index) => (
-                        <div key={`${index}-${item.title}`} className="space-y-2 rounded-xl border p-3">
+                        <div key={index} className="space-y-2 rounded-xl border p-3">
                           <label className="block space-y-1 text-xs">
                             Título do card
-                            <input
+                            <RichTextInput
+                              rows={1}
+                              aria-label={`Título do card ${index + 1}`}
                               value={item.title}
-                              onChange={(e) => {
+                              onChange={(title) => {
                                 const items = [...settings.identification.items];
-                                items[index] = { ...item, title: e.target.value };
+                                items[index] = { ...item, title };
                                 setSettings({ ...settings, identification: { ...settings.identification, items } });
                               }}
                               className="w-full rounded-lg border p-2 text-sm"
@@ -1608,11 +1830,13 @@ export default function AdminPanel() {
                           </label>
                           <label className="block space-y-1 text-xs">
                             Descrição do card
-                            <textarea
+                            <RichTextInput
+                              rows={3}
+                              aria-label={`Descrição do card ${index + 1}`}
                               value={item.description}
-                              onChange={(e) => {
+                              onChange={(description) => {
                                 const items = [...settings.identification.items];
-                                items[index] = { ...item, description: e.target.value };
+                                items[index] = { ...item, description };
                                 setSettings({ ...settings, identification: { ...settings.identification, items } });
                               }}
                               className="w-full rounded-lg border p-2 text-sm"
@@ -1649,11 +1873,12 @@ export default function AdminPanel() {
                     </fieldset>
                     <label className="block space-y-1 text-xs font-semibold">
                       Texto do botão
-                      <input
+                      <RichTextInput
+                        rows={1}
                         value={settings.identification.cta_text}
-                        onChange={(e) => setSettings({
+                        onChange={(cta_text) => setSettings({
                           ...settings,
-                          identification: { ...settings.identification, cta_text: e.target.value },
+                          identification: { ...settings.identification, cta_text },
                         })}
                         className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
@@ -1661,14 +1886,14 @@ export default function AdminPanel() {
 
                     <div>
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">Frase de Conforto Final:</label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={2}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.identification.bottom_text}
-                        onChange={(e) =>
+                        onChange={(bottom_text) =>
                           setSettings({
                             ...settings,
-                            identification: { ...settings.identification, bottom_text: e.target.value },
+                            identification: { ...settings.identification, bottom_text },
                           })
                         }
                       />
@@ -1684,18 +1909,32 @@ export default function AdminPanel() {
                     <h3 className="font-bold text-lg text-[#25181B]">Banner Final de Agendamento</h3>
                     <p className="text-xs text-[#8B7378]">Chamada final antes do rodapé.</p>
                   </div>
+                  <SectionTypographyControls
+                    section="closing_cta"
+                    typography={settings.appearance.section_typography.closing_cta}
+                    onChange={(typography) => setSettings({
+                      ...settings,
+                      appearance: {
+                        ...settings.appearance,
+                        section_typography: {
+                          ...settings.appearance.section_typography,
+                          closing_cta: typography,
+                        },
+                      },
+                    })}
+                  />
 
                   <div className="space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">Título de Fechamento:</label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={2}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.closing_cta.title}
-                        onChange={(e) =>
+                        onChange={(title) =>
                           setSettings({
                             ...settings,
-                            closing_cta: { ...settings.closing_cta, title: e.target.value },
+                            closing_cta: { ...settings.closing_cta, title },
                           })
                         }
                       />
@@ -1703,14 +1942,14 @@ export default function AdminPanel() {
 
                     <div>
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">Subtítulo Acolhedor:</label>
-                      <textarea
+                      <RichTextInput
                         rows={2}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.closing_cta.subtitle}
-                        onChange={(e) =>
+                        onChange={(subtitle) =>
                           setSettings({
                             ...settings,
-                            closing_cta: { ...settings.closing_cta, subtitle: e.target.value },
+                            closing_cta: { ...settings.closing_cta, subtitle },
                           })
                         }
                       />
@@ -1718,14 +1957,14 @@ export default function AdminPanel() {
 
                     <div>
                       <label className="block text-xs font-semibold text-[#25181B] mb-1">Texto do Botão:</label>
-                      <input
-                        type="text"
+                      <RichTextInput
+                        rows={1}
                         className="w-full p-3 rounded-xl border border-gray-200 text-sm focus:border-[#7C1D30] focus:outline-none"
                         value={settings.closing_cta.button_text}
-                        onChange={(e) =>
+                        onChange={(button_text) =>
                           setSettings({
                             ...settings,
-                            closing_cta: { ...settings.closing_cta, button_text: e.target.value },
+                            closing_cta: { ...settings.closing_cta, button_text },
                           })
                         }
                       />
@@ -1781,22 +2020,24 @@ export default function AdminPanel() {
                     </label>
                     <label className="space-y-1 text-xs font-semibold sm:col-span-2">
                       Texto institucional do rodapé
-                      <textarea
+                      <RichTextInput
+                        rows={3}
                         value={settings.brand.footer_description}
-                        onChange={(event) => setSettings({
+                        onChange={(footer_description) => setSettings({
                           ...settings,
-                          brand: { ...settings.brand, footer_description: event.target.value },
+                          brand: { ...settings.brand, footer_description },
                         })}
                         className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
                     </label>
                     <label className="space-y-1 text-xs font-semibold sm:col-span-2">
                       Aviso de emergência
-                      <textarea
+                      <RichTextInput
+                        rows={3}
                         value={settings.brand.emergency_notice}
-                        onChange={(event) => setSettings({
+                        onChange={(emergency_notice) => setSettings({
                           ...settings,
-                          brand: { ...settings.brand, emergency_notice: event.target.value },
+                          brand: { ...settings.brand, emergency_notice },
                         })}
                         className="w-full rounded-xl border p-3 text-sm font-normal"
                       />
@@ -1932,73 +2173,6 @@ export default function AdminPanel() {
                     </div>
                   </fieldset>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="space-y-1 text-sm font-semibold">
-                      Fonte de títulos
-                      <select value={settings.appearance.heading_font} onChange={(event) => setSettings({
-                        ...settings,
-                        appearance: { ...settings.appearance, heading_font: event.target.value as SiteSettings['appearance']['heading_font'] },
-                      })} className="w-full rounded-xl border p-3 font-normal">
-                        <option value="The Seasons">The Seasons</option>
-                        <option value="Cormorant Garamond">Cormorant Garamond</option>
-                        <option value="Playfair Display">Playfair Display</option>
-                        <option value="Georgia">Georgia</option>
-                      </select>
-                    </label>
-                    <label className="space-y-1 text-sm font-semibold">
-                      Fonte de corpo
-                      <select value={settings.appearance.body_font} onChange={(event) => setSettings({
-                        ...settings,
-                        appearance: { ...settings.appearance, body_font: event.target.value as SiteSettings['appearance']['body_font'] },
-                      })} className="w-full rounded-xl border p-3 font-normal">
-                        <option value="Garet">Garet</option>
-                        <option value="Inter">Inter</option>
-                        <option value="Montserrat">Montserrat</option>
-                        <option value="Open Sans">Open Sans</option>
-                        <option value="Arial">Arial</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="space-y-2 text-sm font-semibold">
-                      Tamanho dos títulos: {settings.appearance.heading_font_size}px
-                      <input
-                        type="range"
-                        min="24"
-                        max="72"
-                        step="1"
-                        value={settings.appearance.heading_font_size}
-                        onChange={(event) => setSettings({
-                          ...settings,
-                          appearance: {
-                            ...settings.appearance,
-                            heading_font_size: Number(event.target.value),
-                          },
-                        })}
-                        className="w-full accent-[#7C1D30]"
-                      />
-                    </label>
-                    <label className="space-y-2 text-sm font-semibold">
-                      Tamanho dos textos: {settings.appearance.body_font_size}px
-                      <input
-                        type="range"
-                        min="12"
-                        max="24"
-                        step="1"
-                        value={settings.appearance.body_font_size}
-                        onChange={(event) => setSettings({
-                          ...settings,
-                          appearance: {
-                            ...settings.appearance,
-                            body_font_size: Number(event.target.value),
-                          },
-                        })}
-                        className="w-full accent-[#7C1D30]"
-                      />
-                    </label>
-                  </div>
-
                   <fieldset>
                     <legend className="mb-3 text-sm font-semibold">Alinhamento do conteúdo</legend>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -2013,7 +2187,7 @@ export default function AdminPanel() {
                                 ...settings.appearance,
                                 alignment: {
                                   ...settings.appearance.alignment,
-                                    [section]: event.target.value === 'center' ? 'center' : 'left',
+                                      [section]: event.target.value as SiteSettings['appearance']['alignment'][typeof section],
                                 },
                               },
                             })}
@@ -2021,6 +2195,8 @@ export default function AdminPanel() {
                           >
                             <option value="left">À esquerda</option>
                             <option value="center">Centralizado</option>
+                            <option value="right">À direita</option>
+                            <option value="justify">Justificado</option>
                           </select>
                         </label>
                       ))}
@@ -2082,7 +2258,7 @@ export default function AdminPanel() {
 
             {/* Preview completo renderizado pelos mesmos componentes públicos */}
             {showLivePreview && (
-              <div className="sticky top-4 min-w-0 rounded-3xl border-2 border-[#7C1D30]/20 bg-[#FAF7F2] p-4 shadow-inner">
+              <div className="h-[75vh] min-w-0 rounded-3xl border-2 border-[#7C1D30]/20 bg-[#FAF7F2] p-4 shadow-inner lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:self-start">
                 <SitePreviewFrame settings={settings} />
               </div>
             )}
@@ -2291,12 +2467,12 @@ export default function AdminPanel() {
                   <label key={field} className="block space-y-1 text-xs font-semibold text-[#25181B]">
                     {label}
                     {field === 'address' ? (
-                      <textarea
+                      <RichTextInput
                         rows={3}
                         value={settings.contacts[field]}
-                        onChange={(event) => setSettings({
+                        onChange={(address) => setSettings({
                           ...settings,
-                          contacts: { ...settings.contacts, [field]: event.target.value },
+                          contacts: { ...settings.contacts, [field]: address },
                         })}
                         className="w-full rounded-xl border border-gray-200 p-3 text-sm font-normal focus:border-[#7C1D30] focus:outline-none"
                       />
